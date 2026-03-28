@@ -5,7 +5,7 @@ import { GoogleGenAI } from "@google/genai";
 import { CreditCard, Users, History, PlusCircle, ShieldCheck, TrendingUp, ShoppingBag, User, Store, Search, LayoutGrid, Globe, Server, Download, Copy, ExternalLink, Zap, ArrowLeft, Clock, AlertCircle, X, ChevronRight, UserCheck, Lock, RotateCcw, UserMinus, List, Trash2, Edit, Settings, Smartphone, Camera, Sparkles, CheckCircle2, Filter, MoreVertical, DownloadCloud } from 'lucide-react';
 import { auth } from '../firebase';
 import { Focusable } from './TVFocusManager';
-import { api, UserProfile, Activation as ApiActivation, Payment as ApiPayment } from '../services/api';
+import { api, UserProfile, Activation as ApiActivation, Payment as ApiPayment, isTrialExpired } from '../services/api';
 import { PAYMENT_METHODS } from '../constants';
 import { cn, Card, Badge, Button, Input, Select, Textarea, Toast } from './ui';
 
@@ -37,6 +37,18 @@ interface ResellerPanelProps {
 export const ResellerPanel: React.FC<ResellerPanelProps> = ({ activeTab, setActiveTab }) => {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const userCountry = user.country || 'Côte d\'Ivoire';
+
+  if (!user.isPremium && isTrialExpired(user.trialStartedAt)) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-8">
+        <Card className="p-8 text-center space-y-4 max-w-md">
+          <h2 className="text-2xl font-black text-white">Essai gratuit terminé</h2>
+          <p className="text-zinc-500">Votre période d'essai de 3 semaines est terminée. Veuillez passer à un abonnement premium pour continuer à utiliser l'application.</p>
+          <Button onClick={() => setActiveTab('credits')}>Passer à Premium</Button>
+        </Card>
+      </div>
+    );
+  }
 
   const getCurrencyInfo = (country: string) => {
     const map: Record<string, { symbol: string; code: string; rate: number }> = {

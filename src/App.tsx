@@ -7,7 +7,7 @@ import { ResellerPanel } from './components/ResellerPanel';
 import { cn, Card, Badge, Button, Input, Toast } from './components/ui';
 import { auth, googleProvider } from './firebase';
 import { signInWithPopup, onAuthStateChanged, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { api, UserProfile } from './services/api';
+import { api, UserProfile, isTrialExpired } from './services/api';
 import { PAYMENT_METHODS } from './constants';
 import { Focusable } from './components/TVFocusManager';
 
@@ -617,7 +617,7 @@ export default function App() {
                 </button>
               </div>
               <div className="flex flex-col items-center gap-1 mt-20">
-                <p className="text-[11px] text-zinc-600 tracking-[0.2em]" style={{ fontFamily: "'A770 Roman Swash', 'Playfair Display', serif", fontStyle: 'italic' }}>propulsé par Ewo Tech</p>
+                <p className="text-[11px] text-zinc-600 tracking-[0.2em]" style={{ fontFamily: "'A770 Roman Swash', 'Playfair Display', serif", fontStyle: 'italic' }}>propulsé par Golden Sky Tech</p>
                 <div className="w-12 h-0.5 bg-primary/10 rounded-full" />
               </div>
             </div>
@@ -695,6 +695,18 @@ export default function App() {
           </button>
         )}
       </Focusable>
+    );
+  }
+
+  if (isLoggedIn && !currentUser?.isPremium && isTrialExpired(currentUser?.trialStartedAt)) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <Card className="p-8 text-center space-y-4 max-w-md">
+          <h2 className="text-2xl font-black text-white">Essai gratuit terminé</h2>
+          <p className="text-zinc-500">Votre période d'essai de 3 semaines est terminée. Veuillez passer à un abonnement premium pour continuer à utiliser l'application.</p>
+          <Button onClick={() => setActiveTab('credits')}>Passer à Premium</Button>
+        </Card>
+      </div>
     );
   }
 

@@ -7,6 +7,8 @@ export interface UserProfile {
   phone?: string;
   country?: string;
   createdAt: string;
+  trialStartedAt?: string;
+  isPremium?: boolean;
 }
 
 export interface Activation {
@@ -43,6 +45,12 @@ const STORAGE_KEYS = {
 const getStorage = (key: string) => JSON.parse(localStorage.getItem(key) || '[]');
 const setStorage = (key: string, data: any) => localStorage.setItem(key, JSON.stringify(data));
 
+export const isTrialExpired = (trialStartedAt?: string) => {
+  if (!trialStartedAt) return true;
+  const trialDuration = 21 * 24 * 60 * 60 * 1000;
+  return new Date().getTime() - new Date(trialStartedAt).getTime() > trialDuration;
+};
+
 export const api = {
   async registerUser(userData: Partial<UserProfile>) {
     const users = getStorage(STORAGE_KEYS.USERS);
@@ -51,6 +59,8 @@ export const api = {
       ...userData,
       credits: userData.credits || 0,
       createdAt: new Date().toISOString(),
+      trialStartedAt: userData.trialStartedAt || new Date().toISOString(),
+      isPremium: userData.isPremium || false,
       role: userData.role || 'client'
     };
     

@@ -1,5 +1,4 @@
 import React from 'react';
-import logoImage from './designarena_image_m7.PNG';
 
 interface LogoProps {
   className?: string;
@@ -11,7 +10,7 @@ export const Logo: React.FC<LogoProps> = ({ className = "", size = 40, showText 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
       <img 
-        src={logoImage} 
+        src="/logo.svg" 
         alt="Logo" 
         style={{ width: size, height: size }} 
         className="object-contain"
