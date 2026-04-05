@@ -1,6 +1,6 @@
 {
   "appId": "com.ewotech.woplayer",
-  "appName": "WO PLAYER",
+  "appName": "Sky Player",
   "webDir": "dist",
   "bundledWebRuntime": false,
   "server": {

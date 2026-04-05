@@ -1,0 +1,650 @@
+import React, { useState, useEffect } from 'react';
+import { Card, Badge, Button, Input, Select, Textarea, cn, Toast } from '../components/ui';
+import { Header } from '../components/Header';
+import { Footer } from '../components/Footer';
+import { 
+  Users, User, Store, Search, CreditCard, Download, 
+  FileText, HelpCircle, AlertCircle, LogOut, Plus, 
+  CheckCircle2, Copy, ExternalLink, MessageSquare, FileSpreadsheet,
+  RotateCcw, Filter, Edit2, Trash2, CalendarPlus, MoreVertical, RefreshCw,
+  Menu, X
+} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
+
+const CUSTOMERS = [
+  { id: 'cg', mac: 'VZ:19:C8:68:9C:27', name: 'Mr TSATY JUSTE', system: 'ANDROID_TV', version: '2.2.4', status: 'ACTIF', expiry: '24/03/2027', country: 'Congo' },
+  { id: 'cg', mac: 'RI:19:C6:C7:65:71', name: 'Olynda', system: 'IOS', version: '1.2.1', status: 'ACTIF', expiry: '08/09/2026', country: 'France' },
+  { id: 'cg', mac: 'KJ:19:C1:49:F3:80', name: 'PAPA FLORENT', system: 'ANDROID', version: '2.2.4', status: 'ACTIF', expiry: '21/09/2026', country: 'Congo' },
+  { id: 'cg', mac: 'OG:19:BE:02:6B:0F', name: 'NGAKONO', system: 'ANDROID_TV', version: '2.2.4', status: 'EXPIRÉ', expiry: '20/02/2024', country: 'Gabon' },
+  { id: 'cg', mac: 'B0:37:95:48:8B:35', name: 'Essaie', system: 'WEBOS', version: '2.1.0', status: 'ACTIF', expiry: '27/09/2026', country: 'Congo' },
+  { id: 'cg', mac: 'NJ:19:86:74:36:E7', name: 'Famille Gaziet', system: 'ANDROID_TV', version: '2.2.4', status: 'ACTIF', expiry: '16/09/2026', country: 'Congo' },
+];
+
+const TRANSACTIONS = [
+  { date: '05/04/2026', type: 'Achat', amount: '+10 Crédits', status: 'TERMINÉ' },
+  { date: '01/04/2026', type: 'Activation', amount: '-1 Crédit', status: 'TERMINÉ' },
+  { date: '28/03/2026', type: 'Activation', amount: '-1 Crédit', status: 'TERMINÉ' },
+];
+
+export const Dashboard = () => {
+  const [activeTab, setActiveTab] = useState('Clients');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('Tous');
+  const [systemFilter, setSystemFilter] = useState('Tous');
+  const [countryFilter, setCountryFilter] = useState('Tous');
+  const [showModal, setShowModal] = useState<string | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const navigate = useNavigate();
+
+  const menuItems = [
+    { name: 'Clients', icon: Users },
+    { name: 'Profil', icon: User },
+    { name: 'Infos Boutique', icon: Store },
+    { name: 'Vérifier MAC', icon: Search },
+    { name: 'Aperçu du solde', icon: CreditCard },
+    { name: 'Acheter des crédits', icon: CreditCard },
+    { name: 'Télécharger APK', icon: Download },
+    { name: 'API', icon: FileText },
+    { name: 'Support', icon: HelpCircle },
+    { name: 'Conditions d\'utilisation', icon: FileText },
+  ];
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setToast({ message, type });
+  };
+
+  const handleAction = async (actionName: string, callback: () => Promise<void>) => {
+    setLoading(true);
+    try {
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Randomly fail for demonstration of error handling (20% chance)
+      if (Math.random() < 0.2) {
+        throw new Error(`Erreur lors de l'exécution de l'action : ${actionName}`);
+      }
+      
+      await callback();
+      showToast(`Action "${actionName}" réussie !`, 'success');
+      setShowModal(null);
+    } catch (error: any) {
+      console.error(error);
+      showToast(error.message || "Une erreur inattendue est survenue. Veuillez réessayer.", 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const exportToCSV = () => {
+    try {
+      const headers = ['MAC', 'Nom', 'Systeme', 'Version', 'Statut', 'Expiration'];
+      const rows = CUSTOMERS.map(c => [c.mac, c.name, c.system, c.version, c.status, c.expiry]);
+      
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.join(','))
+      ].join('\n');
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `export_clients_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast("Exportation réussie", "success");
+    } catch (error) {
+      showToast("Échec de l'exportation", "error");
+    }
+  };
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'Clients':
+        const filteredCustomers = CUSTOMERS.filter(c => {
+          const matchesSearch = c.mac.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                               c.name.toLowerCase().includes(searchTerm.toLowerCase());
+          const matchesStatus = statusFilter === 'Tous' || c.status === statusFilter;
+          const matchesSystem = systemFilter === 'Tous' || c.system === systemFilter;
+          const matchesCountry = countryFilter === 'Tous' || c.country === countryFilter;
+          return matchesSearch && matchesStatus && matchesSystem && matchesCountry;
+        });
+
+        const systems = ['Tous', ...Array.from(new Set(CUSTOMERS.map(c => c.system)))];
+        const countries = ['Tous', ...Array.from(new Set(CUSTOMERS.map(c => c.country)))];
+
+        return (
+          <div className="space-y-6">
+            <div className="flex flex-wrap gap-4 items-center">
+              <Button onClick={() => setShowModal('activate')} icon={Plus}>Activer</Button>
+              <Button onClick={() => setShowModal('new-client')} variant="outline" icon={Plus}>Nouveau client</Button>
+              <Button onClick={exportToCSV} variant="ghost" icon={FileSpreadsheet} className="text-emerald-500 hover:bg-emerald-500/10">Exporter Excel</Button>
+              <div className="flex-1" />
+              <Input 
+                placeholder="Rechercher par MAC ou Nom..." 
+                value={searchTerm} 
+                onChange={(e: any) => setSearchTerm(e.target.value)} 
+                className="max-w-xs" 
+                icon={Search}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-zinc-900/20 p-4 rounded-2xl border border-zinc-800/50">
+              <Select 
+                label="Filtrer par Statut" 
+                value={statusFilter} 
+                onChange={(e: any) => setStatusFilter(e.target.value)}
+              >
+                <option value="Tous">Tous les statuts</option>
+                <option value="ACTIF">Actif</option>
+                <option value="EXPIRÉ">Expiré</option>
+              </Select>
+              <Select 
+                label="Filtrer par Système" 
+                value={systemFilter} 
+                onChange={(e: any) => setSystemFilter(e.target.value)}
+              >
+                {systems.map(s => <option key={s} value={s}>{s === 'Tous' ? 'Tous les systèmes' : s}</option>)}
+              </Select>
+              <Select 
+                label="Filtrer par Pays" 
+                value={countryFilter} 
+                onChange={(e: any) => setCountryFilter(e.target.value)}
+              >
+                {countries.map(c => <option key={c} value={c}>{c === 'Tous' ? 'Tous les pays' : c}</option>)}
+              </Select>
+            </div>
+
+            <Card className="overflow-hidden p-0 border-zinc-800">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="text-zinc-500 bg-zinc-900/50 border-b border-zinc-800">
+                    <tr>
+                      <th className="p-4 text-left font-black uppercase tracking-widest text-[10px]">Adresse MAC</th>
+                      <th className="p-4 text-left font-black uppercase tracking-widest text-[10px]">Nom du Client</th>
+                      <th className="p-4 text-left font-black uppercase tracking-widest text-[10px]">Pays</th>
+                      <th className="p-4 text-left font-black uppercase tracking-widest text-[10px]">Système</th>
+                      <th className="p-4 text-left font-black uppercase tracking-widest text-[10px]">Version</th>
+                      <th className="p-4 text-left font-black uppercase tracking-widest text-[10px]">Statut</th>
+                      <th className="p-4 text-left font-black uppercase tracking-widest text-[10px]">Date d'expiration</th>
+                      <th className="p-4 text-right font-black uppercase tracking-widest text-[10px]">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredCustomers.map((c, i) => (
+                      <tr key={i} className="border-b border-zinc-900 hover:bg-zinc-950 transition-colors">
+                        <td className="p-4 font-mono text-primary">{c.mac}</td>
+                        <td className="p-4 font-bold">{c.name}</td>
+                        <td className="p-4 text-zinc-400">{c.country}</td>
+                        <td className="p-4 text-zinc-400">{c.system}</td>
+                        <td className="p-4 text-zinc-500">{c.version}</td>
+                        <td className="p-4">
+                          <Badge variant={c.status === 'ACTIF' ? 'success' : 'error'}>{c.status}</Badge>
+                        </td>
+                        <td className="p-4 text-zinc-400">{c.expiry}</td>
+                        <td className="p-4 text-right">
+                          <div className="flex justify-end gap-2">
+                            <button 
+                              onClick={() => { setSelectedCustomer(c); setShowModal('extend'); }}
+                              className="p-2 hover:bg-primary/10 text-primary rounded-lg transition-colors"
+                              title="Prolonger"
+                            >
+                              <CalendarPlus size={16} />
+                            </button>
+                            <button 
+                              onClick={() => { setSelectedCustomer(c); setShowModal('edit-client'); }}
+                              className="p-2 hover:bg-white/5 text-zinc-400 hover:text-white rounded-lg transition-colors"
+                              title="Modifier"
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                            <button 
+                              onClick={() => { setSelectedCustomer(c); setShowModal('reset-device'); }}
+                              className="p-2 hover:bg-white/5 text-zinc-400 hover:text-white rounded-lg transition-colors"
+                              title="Réinitialiser"
+                            >
+                              <RefreshCw size={16} />
+                            </button>
+                            <button 
+                              onClick={() => { setSelectedCustomer(c); setShowModal('delete-client'); }}
+                              className="p-2 hover:bg-red-500/10 text-red-500 rounded-lg transition-colors"
+                              title="Supprimer"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          </div>
+        );
+
+      case 'Profil':
+        return (
+          <Card className="max-w-2xl space-y-6">
+            <h2 className="text-xl font-bold">Paramètres du profil</h2>
+            <div className="grid grid-cols-2 gap-4">
+              <Input label="Nom complet" defaultValue="Ulrich Okinda" />
+              <Input label="Adresse Email" defaultValue="inestaulrichokinda@gmail.com" />
+              <Input label="Nouveau mot de passe" type="password" placeholder="••••••••" />
+              <Input label="Confirmer le mot de passe" type="password" placeholder="••••••••" />
+            </div>
+            <Button 
+              loading={loading} 
+              onClick={() => handleAction("Mise à jour du profil", async () => {})}
+            >
+              Mettre à jour le profil
+            </Button>
+          </Card>
+        );
+
+      case 'Infos Boutique':
+        return (
+          <Card className="max-w-2xl space-y-6">
+            <h2 className="text-xl font-bold">Informations de la boutique</h2>
+            <div className="space-y-4">
+              <div className="flex justify-between border-b border-zinc-800 pb-2">
+                <span className="text-zinc-500">Nom de la boutique</span>
+                <span className="font-bold">Sky Player Official</span>
+              </div>
+              <div className="flex justify-between border-b border-zinc-800 pb-2">
+                <span className="text-zinc-500">Niveau de revendeur</span>
+                <Badge variant="primary">Revendeur Or</Badge>
+              </div>
+              <div className="flex justify-between border-b border-zinc-800 pb-2">
+                <span className="text-zinc-500">Total des activations</span>
+                <span className="font-bold">142</span>
+              </div>
+            </div>
+          </Card>
+        );
+
+      case 'Vérifier MAC':
+        return (
+          <Card className="max-w-md space-y-6">
+            <h2 className="text-xl font-bold">Vérifier le statut MAC</h2>
+            <p className="text-zinc-500 text-sm">Entrez une adresse MAC pour vérifier son statut d'activation et sa date d'expiration.</p>
+            <Input placeholder="00:00:00:00:00:00" label="Adresse MAC" />
+            <Button 
+              fullWidth 
+              icon={Search} 
+              loading={loading}
+              onClick={() => handleAction("Vérification MAC", async () => {})}
+            >
+              Vérifier le statut
+            </Button>
+          </Card>
+        );
+
+      case 'Aperçu du solde':
+        return (
+          <div className="space-y-6">
+            <h2 className="text-xl font-bold">Historique des transactions</h2>
+            <Card className="overflow-hidden p-0 border-zinc-800">
+              <table className="w-full text-sm">
+                <thead className="text-zinc-500 bg-zinc-900/50 border-b border-zinc-800">
+                  <tr>
+                    <th className="p-4 text-left font-black uppercase tracking-widest text-[10px]">Date</th>
+                    <th className="p-4 text-left font-black uppercase tracking-widest text-[10px]">Type</th>
+                    <th className="p-4 text-left font-black uppercase tracking-widest text-[10px]">Montant</th>
+                    <th className="p-4 text-left font-black uppercase tracking-widest text-[10px]">Statut</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {TRANSACTIONS.map((t, i) => (
+                    <tr key={i} className="border-b border-zinc-900">
+                      <td className="p-4 text-zinc-400">{t.date}</td>
+                      <td className="p-4 font-bold">{t.type}</td>
+                      <td className={`p-4 font-bold ${t.amount.startsWith('+') ? 'text-emerald-500' : 'text-red-500'}`}>
+                        {t.amount}
+                      </td>
+                      <td className="p-4"><Badge variant="success">{t.status}</Badge></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Card>
+          </div>
+        );
+
+      case 'Acheter des crédits':
+        return (
+          <Card className="max-w-md space-y-6 text-center py-12">
+            <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary">
+              <CreditCard size={40} />
+            </div>
+            <h2 className="text-2xl font-black italic">Besoin de crédits ?</h2>
+            <p className="text-zinc-500">Rechargez votre compte pour continuer à activer des appareils pour vos clients.</p>
+            <div className="grid gap-4">
+              <Button onClick={() => navigate('/payment')} fullWidth size="lg">Acheter des crédits</Button>
+              <Button variant="outline" fullWidth onClick={() => setActiveTab('Support')}>Contacter un agent</Button>
+            </div>
+          </Card>
+        );
+
+      case 'Télécharger APK':
+        return (
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card className="space-y-4">
+              <div className="flex items-center gap-3 text-primary">
+                <Download size={24} />
+                <h3 className="font-bold">Hot Player Android</h3>
+              </div>
+              <p className="text-sm text-zinc-500">Version stable pour smartphones et tablettes Android.</p>
+              <Button variant="outline" fullWidth icon={ExternalLink}>Télécharger APK</Button>
+            </Card>
+            <Card className="space-y-4">
+              <div className="flex items-center gap-3 text-primary">
+                <Download size={24} />
+                <h3 className="font-bold">Hot Player TV Box</h3>
+              </div>
+              <p className="text-sm text-zinc-500">Version optimisée pour Android TV et FireStick.</p>
+              <Button variant="outline" fullWidth icon={ExternalLink}>Télécharger APK</Button>
+            </Card>
+          </div>
+        );
+
+      case 'API':
+        return (
+          <Card className="max-w-2xl space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold">Accès API</h2>
+              <Badge variant="info">Bêta</Badge>
+            </div>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Votre clé API</label>
+                <div className="flex gap-2">
+                  <Input readOnly value="sk_live_51N...8x9z" className="font-mono" />
+                  <Button variant="outline" icon={Copy} onClick={() => showToast("Clé API copiée", "info")}>Copier</Button>
+                </div>
+              </div>
+              <div className="p-4 bg-zinc-950 rounded-xl border border-zinc-800">
+                <p className="text-xs text-zinc-500 leading-relaxed">
+                  Utilisez notre API pour automatiser les activations depuis votre propre panneau ou site web. 
+                  Consultez notre <span className="text-primary cursor-pointer hover:underline">documentation</span> pour plus de détails.
+                </p>
+              </div>
+            </div>
+          </Card>
+        );
+
+      case 'Support':
+        return (
+          <Card className="max-w-2xl space-y-6">
+            <h2 className="text-xl font-bold">Support Technique</h2>
+            <p className="text-zinc-500 text-sm">Notre équipe est disponible 24/7 pour vous aider en cas de problème.</p>
+            <div className="grid md:grid-cols-2 gap-4">
+              <Button variant="outline" className="h-32 flex-col gap-3" icon={MessageSquare}>
+                Support WhatsApp
+                <span className="text-[10px] text-zinc-500">Réponse rapide</span>
+              </Button>
+              <Button variant="outline" className="h-32 flex-col gap-3" icon={HelpCircle}>
+                Ouvrir un ticket
+                <span className="text-[10px] text-zinc-500">Support par email</span>
+              </Button>
+            </div>
+          </Card>
+        );
+
+      case 'Conditions d\'utilisation':
+        return (
+          <Card className="max-w-3xl space-y-6">
+            <h2 className="text-xl font-bold">Conditions d'utilisation</h2>
+            <div className="prose prose-invert text-sm text-zinc-400 space-y-4">
+              <p>En utilisant le panneau de revendeur Sky Player, vous acceptez les conditions suivantes :</p>
+              <ul className="list-disc pl-5 space-y-2">
+                <li>Les crédits ne sont pas remboursables une fois achetés.</li>
+                <li>Le partage de compte est strictement interdit.</li>
+                <li>Vous êtes responsable du contenu fourni à vos utilisateurs finaux.</li>
+                <li>Nous nous réservons le droit de suspendre les comptes en cas de violation de ces conditions.</li>
+              </ul>
+            </div>
+          </Card>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-black text-white flex flex-col md:flex-row overflow-x-hidden">
+      <AnimatePresence>
+        {toast && (
+          <Toast 
+            message={toast.message} 
+            type={toast.type} 
+            onClose={() => setToast(null)} 
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Mobile Header */}
+      <div className="md:hidden flex items-center justify-between p-4 bg-zinc-900 border-b border-zinc-800 sticky top-0 z-40">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-black font-black italic text-xs">SP</div>
+          <h2 className="font-bold text-sm">Sky Player</h2>
+        </div>
+        <button 
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className="p-2 text-zinc-400 hover:text-white"
+        >
+          <Menu size={24} />
+        </button>
+      </div>
+
+      {/* Sidebar Overlay for Mobile */}
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsSidebarOpen(false)}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[50] md:hidden"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Sidebar */}
+      <aside className={cn(
+        "fixed inset-y-0 left-0 z-[60] w-72 bg-zinc-950 border-r border-zinc-800 p-6 flex flex-col transition-transform duration-300 md:translate-x-0 md:static md:h-screen md:sticky md:top-0",
+        isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+      )}>
+        <div className="flex items-center justify-between mb-8 md:block">
+          <div className="space-y-1">
+            <h2 className="font-bold text-lg">Ulrich Okinda</h2>
+            <p className="text-zinc-500 text-sm truncate">inestaulrichokinda@gmail.com</p>
+          </div>
+          <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-2 text-zinc-500">
+            <X size={20} />
+          </button>
+        </div>
+        
+        <nav className="flex-1 space-y-1 overflow-y-auto custom-scrollbar">
+          {menuItems.map(item => (
+            <button 
+              key={item.name} 
+              onClick={() => { setActiveTab(item.name); setIsSidebarOpen(false); }}
+              className={cn(
+                "flex items-center gap-3 w-full p-3 rounded-xl transition-all text-sm font-medium",
+                activeTab === item.name 
+                  ? "bg-primary text-black shadow-lg shadow-primary/20" 
+                  : "text-zinc-400 hover:bg-zinc-900 hover:text-white"
+              )}
+            >
+              <item.icon size={18} />
+              {item.name}
+            </button>
+          ))}
+        </nav>
+
+        <div className="pt-6 border-t border-zinc-800 mt-6">
+          <button 
+            onClick={() => navigate('/')}
+            className="flex items-center gap-3 w-full p-3 rounded-xl text-red-500 hover:bg-red-500/10 transition-all text-sm font-medium"
+          >
+            <LogOut size={18} />
+            Déconnexion
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col min-h-screen">
+        <Header />
+        <div className="p-4 md:p-8 space-y-8 flex-1">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <h1 className="text-3xl font-black italic">{activeTab}</h1>
+            <Card className="bg-primary/10 border-primary/20 p-4 py-2 flex items-center gap-3">
+              <CreditCard size={18} className="text-primary" />
+              <div>
+                <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest">Solde</p>
+                <p className="text-sm text-primary font-black">4 CRÉDITS</p>
+              </div>
+            </Card>
+          </div>
+
+          {renderContent()}
+        </div>
+        <Footer />
+      </main>
+
+      {/* Simple Modal Overlay */}
+      {showModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <Card className="w-full max-w-lg space-y-6 relative border-zinc-700 shadow-2xl">
+            <button 
+              disabled={loading}
+              onClick={() => setShowModal(null)}
+              className="absolute top-4 right-4 p-2 hover:bg-white/5 rounded-full transition-colors disabled:opacity-50"
+            >
+              <Plus className="rotate-45" size={20} />
+            </button>
+            
+            {showModal === 'activate' ? (
+              <>
+                <h2 className="text-2xl font-black italic">Activer l'appareil</h2>
+                <div className="space-y-4">
+                  <Input label="Adresse MAC" placeholder="00:00:00:00:00:00" />
+                  <Select label="Forfait d'abonnement">
+                    <option>1 An (1 Crédit)</option>
+                    <option>À vie (2 Crédits)</option>
+                  </Select>
+                  <div className="p-4 bg-primary/5 border border-primary/10 rounded-xl">
+                    <p className="text-xs text-zinc-400">Cette action déduira <span className="text-primary font-bold">1 Crédit</span> de votre solde.</p>
+                  </div>
+                  <Button 
+                    fullWidth 
+                    loading={loading}
+                    onClick={() => handleAction("Activation de l'appareil", async () => {})}
+                  >
+                    Confirmer l'activation
+                  </Button>
+                </div>
+              </>
+            ) : showModal === 'new-client' ? (
+              <>
+                <h2 className="text-2xl font-black italic">Nouveau Client</h2>
+                <div className="space-y-4">
+                  <Input label="Nom du Client" placeholder="Jean Dupont" />
+                  <Input label="Adresse MAC" placeholder="00:00:00:00:00:00" />
+                  <Input label="Notes (Optionnel)" placeholder="Télé de la chambre" />
+                  <Button 
+                    fullWidth 
+                    loading={loading}
+                    onClick={() => handleAction("Ajout d'un nouveau client", async () => {})}
+                  >
+                    Ajouter le client
+                  </Button>
+                </div>
+              </>
+            ) : showModal === 'extend' ? (
+              <>
+                <h2 className="text-2xl font-black italic">Prolonger l'abonnement</h2>
+                <div className="space-y-4">
+                  <div className="p-4 bg-zinc-950 rounded-xl border border-zinc-800">
+                    <p className="text-xs text-zinc-500">Client : <span className="text-white font-bold">{selectedCustomer?.name}</span></p>
+                    <p className="text-xs text-zinc-500">MAC : <span className="text-primary font-mono">{selectedCustomer?.mac}</span></p>
+                    <p className="text-xs text-zinc-500">Expire le : <span className="text-white">{selectedCustomer?.expiry}</span></p>
+                  </div>
+                  <Select label="Choisir une extension">
+                    <option>+1 An (1 Crédit)</option>
+                    <option>Passer à Vie (2 Crédits)</option>
+                  </Select>
+                  <Button 
+                    fullWidth 
+                    loading={loading}
+                    onClick={() => handleAction("Prolongation d'abonnement", async () => {})}
+                  >
+                    Confirmer la prolongation
+                  </Button>
+                </div>
+              </>
+            ) : showModal === 'edit-client' ? (
+              <>
+                <h2 className="text-2xl font-black italic">Modifier le client</h2>
+                <div className="space-y-4">
+                  <Input label="Nom du Client" defaultValue={selectedCustomer?.name} />
+                  <Input label="Adresse MAC" defaultValue={selectedCustomer?.mac} readOnly className="opacity-50" />
+                  <Input label="Notes" placeholder="Notes sur le client..." />
+                  <Button 
+                    fullWidth 
+                    loading={loading}
+                    onClick={() => handleAction("Modification du client", async () => {})}
+                  >
+                    Enregistrer les modifications
+                  </Button>
+                </div>
+              </>
+            ) : showModal === 'reset-device' ? (
+              <>
+                <h2 className="text-2xl font-black italic">Réinitialiser l'appareil</h2>
+                <div className="space-y-4">
+                  <p className="text-sm text-zinc-400">Voulez-vous vraiment réinitialiser les données de cet appareil ? Cette action est irréversible.</p>
+                  <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                    <p className="text-xs text-amber-500">L'abonnement restera actif, mais les listes de lecture seront vidées.</p>
+                  </div>
+                  <Button 
+                    fullWidth 
+                    loading={loading}
+                    onClick={() => handleAction("Réinitialisation de l'appareil", async () => {})}
+                  >
+                    Confirmer la réinitialisation
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 className="text-2xl font-black italic text-red-500">Supprimer le client</h2>
+                <div className="space-y-4">
+                  <p className="text-sm text-zinc-400">Êtes-vous sûr de vouloir supprimer <span className="text-white font-bold">{selectedCustomer?.name}</span> ?</p>
+                  <p className="text-xs text-red-500/70">Attention : L'abonnement en cours sera définitivement perdu.</p>
+                  <Button 
+                    fullWidth 
+                    variant="danger"
+                    loading={loading}
+                    onClick={() => handleAction("Suppression du client", async () => {})}
+                  >
+                    Supprimer définitivement
+                  </Button>
+                </div>
+              </>
+            )}
+          </Card>
+        </div>
+      )}
+    </div>
+  );
+};

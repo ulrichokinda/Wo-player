@@ -1196,7 +1196,7 @@ export const ResellerPanel: React.FC<ResellerPanelProps> = ({ activeTab, setActi
                   <div className="p-2 bg-black rounded-xl text-white w-fit">
                     <Logo size={48} showText={false} />
                   </div>
-                  <h3 className="text-2xl lg:text-3xl font-black tracking-tighter leading-none">WO PLAYER <br/>Infrastructure</h3>
+                  <h3 className="text-2xl lg:text-3xl font-black tracking-tighter leading-none">SKY PLAYER <br/>Infrastructure</h3>
                   <p className="text-zinc-600 font-medium text-sm leading-relaxed">
                     Votre partenaire technologique pour une diffusion IPTV de classe mondiale.
                   </p>
@@ -1387,7 +1387,7 @@ export const ResellerPanel: React.FC<ResellerPanelProps> = ({ activeTab, setActi
                 Informations
               </Badge>
               <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-none">Infos <span className="text-zinc-500">Magasin</span></h1>
-              <p className="text-zinc-500 text-xl font-medium max-w-2xl leading-relaxed">Découvrez les détails officiels de l'application WOPlayer.</p>
+              <p className="text-zinc-500 text-xl font-medium max-w-2xl leading-relaxed">Découvrez les détails officiels de l'application Sky Player.</p>
             </header>
 
             <Card className="p-8 md:p-12 border-zinc-800/50 space-y-8">
@@ -1443,24 +1443,24 @@ export const ResellerPanel: React.FC<ResellerPanelProps> = ({ activeTab, setActi
                 Légal
               </Badge>
               <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-none">Termes et <span className="text-zinc-500">Conditions</span></h1>
-              <p className="text-zinc-500 text-xl font-medium max-w-2xl leading-relaxed">Conditions générales de vente en ligne du service WOPlayer.</p>
+              <p className="text-zinc-500 text-xl font-medium max-w-2xl leading-relaxed">Conditions générales de vente en ligne du service Sky Player.</p>
             </header>
 
             <Card className="p-8 md:p-12 border-zinc-800/50">
               <div className="prose prose-invert max-w-none space-y-6 text-zinc-400 text-sm leading-relaxed">
                 <h2 className="text-2xl font-black text-white tracking-tight">Conditions générales de vente en ligne</h2>
-                <p>Nous vous invitons à lire les présentes conditions générales de vente en ligne du site web WOPlayer.</p>
+                <p>Nous vous invitons à lire les présentes conditions générales de vente en ligne du site web Sky Player.</p>
                 <p className="font-bold text-white">La validation de votre formulaire de transaction en ligne vaut acceptation irrévocable des présentes conditions.</p>
 
                 <div className="space-y-8">
                   <section className="space-y-3">
                     <h3 className="text-lg font-bold text-white">1. Préambule</h3>
-                    <p>Les présentes conditions générales régissent tous les achats et abonnements effectués via l'application WOPlayer ou le site web WOPlayer.app. Toute transaction réalisée via notre application ou notre site web implique l'acceptation pleine et entière des présentes conditions par le client.</p>
+                    <p>Les présentes conditions générales régissent tous les achats et abonnements effectués via l'application Sky Player ou le site web SkyPlayer.app. Toute transaction réalisée via notre application ou notre site web implique l'acceptation pleine et entière des présentes conditions par le client.</p>
                   </section>
 
                   <section className="space-y-3">
                     <h3 className="text-lg font-bold text-white">2. Objectif</h3>
-                    <p>Ces conditions définissent les droits et obligations des deux parties concernant la vente de licences ou d'abonnements WOPlayer, qu'ils soient achetés via notre site web, l'App Store ou Google Play.</p>
+                    <p>Ces conditions définissent les droits et obligations des deux parties concernant la vente de licences ou d'abonnements Sky Player, qu'ils soient achetés via notre site web, l'App Store ou Google Play.</p>
                   </section>
 
                   <section className="space-y-3">
@@ -1485,7 +1485,7 @@ export const ResellerPanel: React.FC<ResellerPanelProps> = ({ activeTab, setActi
                         <p>Pour les achats effectués directement dans l'application :</p>
                         <ul className="list-disc pl-5 space-y-2">
                           <li>Le paiement est traité par Apple Inc. ou Google LLC conformément à leurs conditions d'utilisation respectives.</li>
-                          <li>WOPlayer ne stocke ni ne traite vos informations de paiement.</li>
+                          <li>Sky Player ne stocke ni ne traite vos informations de paiement.</li>
                           <li>Le renouvellement des abonnements est géré par la boutique correspondante (App Store / Google Play) et peut être annulé à tout moment depuis les paramètres de votre compte.</li>
                         </ul>
                       </div>
@@ -1500,12 +1500,12 @@ export const ResellerPanel: React.FC<ResellerPanelProps> = ({ activeTab, setActi
                       <li>Les frais de renouvellement sont traités via votre compte Apple ou Google.</li>
                       <li>Vous pouvez gérer ou annuler votre abonnement à tout moment depuis les paramètres de votre compte.</li>
                     </ul>
-                    <p>Pour les activations de site web, les renouvellements peuvent être effectués manuellement via votre site web WOPlayer.</p>
+                    <p>Pour les activations de site web, les renouvellements peuvent être effectués manuellement via votre site web Sky Player.</p>
                   </section>
 
                   <section className="space-y-3">
                     <h3 className="text-lg font-bold text-white">6. Période d'essai</h3>
-                    <p>WOPlayer peut proposer un essai gratuit de 30 jours pour permettre aux utilisateurs de tester l'application. Passé ce délai, vous pourrez acheter une licence ou un abonnement pour continuer à utiliser les fonctionnalités premium.</p>
+                    <p>Sky Player peut proposer un essai gratuit de 30 jours pour permettre aux utilisateurs de tester l'application. Passé ce délai, vous pourrez acheter une licence ou un abonnement pour continuer à utiliser les fonctionnalités premium.</p>
                   </section>
 
                   <section className="space-y-3">
@@ -1513,7 +1513,7 @@ export const ResellerPanel: React.FC<ResellerPanelProps> = ({ activeTab, setActi
                     <p>Les tarifs du site web sont actuellement les suivants :</p>
                     <ul className="list-disc pl-5 space-y-2">
                       <li>65 MAD (environ 5,99 EUR) par appareil pour un an</li>
-                      <li>162 MAD (~14,99 EUR) par appareil pour une activation à vie (« FOREVER »), qui reste valable tant que WOPlayer continue de fonctionner et de fournir ses services.</li>
+                      <li>162 MAD (~14,99 EUR) par appareil pour une activation à vie (« FOREVER »), qui reste valable tant que Sky Player continue de fonctionner et de fournir ses services.</li>
                     </ul>
                     <p>Les prix des achats intégrés sur l'App Store ou Google Play peuvent varier en fonction des frais de plateforme, des taxes régionales ou des taux de change. Tous les prix sont clairement affichés avant la confirmation du paiement.</p>
                   </section>

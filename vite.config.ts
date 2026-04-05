@@ -13,9 +13,9 @@ export default defineConfig(({mode}) => {
       VitePWA({
         registerType: 'autoUpdate',
         manifest: {
-          name: 'WO PLAYER Reseller',
-          short_name: 'WO PLAYER',
-          description: 'WO PLAYER Reseller Panel & Streaming Player',
+          name: 'Sky Player Reseller',
+          short_name: 'Sky Player',
+          description: 'Sky Player Reseller Panel & Streaming Player',
           theme_color: '#000000',
           background_color: '#000000',
           display: 'standalone',

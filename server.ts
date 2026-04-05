@@ -51,6 +51,12 @@ db.exec(`
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(userId) REFERENCES users(uid)
   );
+
+  CREATE TABLE IF NOT EXISTS user_bouquet (
+    userId TEXT PRIMARY KEY,
+    countries TEXT,
+    FOREIGN KEY(userId) REFERENCES users(uid)
+  );
 `);
 
 async function startServer() {
@@ -160,20 +166,17 @@ async function startServer() {
     }
   });
 
-  app.post('/api/payments/moneyfusion/initiate', async (req, res) => {
-    const { userId, amount, phoneNumber, credits_purchased } = req.body;
-    const apiKey = process.env.MONEYFUSION_API_KEY || "dummy_key";
+  app.post("/api/payments/initiate", (req, res) => {
+    const { userId, amount, phoneNumber, credits_purchased, paymentMethod } = req.body;
     const depositId = Math.random().toString(36).substr(2, 9);
 
     try {
-      // In a real scenario, we would call MoneyFusion API here
-      console.log(`Initiating MoneyFusion deposit for ${phoneNumber} with amount ${amount}`);
+      console.log(`Initiating ${paymentMethod} deposit for ${phoneNumber} with amount ${amount}`);
       
-      // Record the pending payment
       const id = Math.random().toString(36).substr(2, 9);
       const transaction = db.transaction(() => {
         db.prepare('INSERT INTO payments (id, userId, amount, credits_purchased, payment_method, provider, status, external_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
-          id, userId, amount, credits_purchased, 'moneyfusion', 'moneyfusion', 'pending', depositId
+          id, userId, amount, credits_purchased, paymentMethod, paymentMethod, 'pending', depositId
         );
       });
       transaction();
@@ -181,40 +184,11 @@ async function startServer() {
       res.json({ 
         success: true, 
         depositId,
-        message: "Paiement MoneyFusion initié. Veuillez valider sur votre téléphone." 
+        message: `Paiement ${paymentMethod} initié. Veuillez valider sur votre téléphone.` 
       });
     } catch (error: any) {
-      console.error('MoneyFusion Error:', error);
-      res.status(500).json({ error: 'Erreur lors de l\'initiation du paiement MoneyFusion' });
-    }
-  });
-
-  app.post('/api/payments/yabetoopay/initiate', async (req, res) => {
-    const { userId, amount, phoneNumber, credits_purchased, methodId } = req.body;
-    const apiKey = process.env.YABETOO_API_KEY || "dummy_key";
-    const depositId = Math.random().toString(36).substr(2, 9);
-
-    try {
-      // In a real scenario, we would call YabetooPay API here
-      console.log(`Initiating YabetooPay deposit for ${phoneNumber} with amount ${amount} using ${methodId}`);
-      
-      // Record the pending payment
-      const id = Math.random().toString(36).substr(2, 9);
-      const transaction = db.transaction(() => {
-        db.prepare('INSERT INTO payments (id, userId, amount, credits_purchased, payment_method, provider, status, external_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
-          id, userId, amount, credits_purchased, methodId, 'yabetoopay', 'pending', depositId
-        );
-      });
-      transaction();
-
-      res.json({ 
-        success: true, 
-        depositId,
-        message: `Paiement ${methodId} via YabetooPay initié. Veuillez valider sur votre téléphone.` 
-      });
-    } catch (error: any) {
-      console.error('YabetooPay Error:', error);
-      res.status(500).json({ error: 'Erreur lors de l\'initiation du paiement YabetooPay' });
+      console.error('Payment Error:', error);
+      res.status(500).json({ error: 'Erreur lors de l\'initiation du paiement' });
     }
   });
 
@@ -230,6 +204,42 @@ async function startServer() {
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
+  });
+
+  app.post("/api/user/bouquet", (req, res) => {
+    const { userId, countries } = req.body;
+    try {
+      const stmt = db.prepare("INSERT OR REPLACE INTO user_bouquet (userId, countries) VALUES (?, ?)");
+      stmt.run(userId, JSON.stringify(countries));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/user/m3u/:userId", (req, res) => {
+    const { userId } = req.params;
+    const row = db.prepare("SELECT countries FROM user_bouquet WHERE userId = ?").get(userId) as any;
+    const selectedCountries = row ? JSON.parse(row.countries) : [];
+
+    // Simulate filtering a master playlist
+    const masterPlaylist = [
+      { name: 'Canal+', country: 'France', url: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8' },
+      { name: 'RTS1', country: 'Sénégal', url: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8' },
+      { name: 'CRTV', country: 'Cameroun', url: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8' },
+      { name: 'TF1', country: 'France', url: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8' },
+    ];
+
+    const filteredPlaylist = masterPlaylist.filter(ch => selectedCountries.includes(ch.country));
+    
+    // Generate M3U content
+    let m3u = "#EXTM3U\n";
+    filteredPlaylist.forEach(ch => {
+      m3u += `#EXTINF:-1,${ch.name}\n${ch.url}\n`;
+    });
+
+    res.setHeader('Content-Type', 'audio/x-mpegurl');
+    res.send(m3u);
   });
 
   app.get('/api/channels', (req, res) => {

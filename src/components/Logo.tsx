@@ -19,7 +19,7 @@ export const Logo: React.FC<LogoProps> = ({ className = "", size = 40, showText 
       {showText && (
         <div className="flex flex-col leading-none">
           <span className="text-2xl lg:text-3xl font-black text-white tracking-tighter">
-            WO <span className="text-primary">PLAYER</span>
+            SKY <span className="text-primary">PLAYER</span>
           </span>
           <span className="text-[10px] lg:text-xs font-black text-zinc-500 uppercase tracking-[0.3em] mt-1">
             Premium Streaming
