@@ -13,7 +13,7 @@ export const Card = ({ children, className, variant = 'default', ...props }: { c
     className={cn(
       "rounded-3xl p-6 transition-all duration-300",
       variant === 'default' && "bg-zinc-900/40 border border-zinc-800/50 backdrop-blur-md",
-      variant === 'glass' && "bg-white/5 border border-white/10 backdrop-blur-xl",
+      variant === 'glass' && "glass-panel",
       variant === 'outline' && "border border-zinc-800",
       className
     )}
@@ -70,7 +70,7 @@ export const Button = ({
     onClick={onClick}
     disabled={disabled || loading}
     className={cn(
-      "relative inline-flex items-center justify-center gap-2 font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none",
+      "relative inline-flex items-center justify-center gap-2 font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary focus-visible:scale-105",
       fullWidth && "w-full",
       size === 'sm' && "px-4 py-2 text-[10px] rounded-xl",
       size === 'md' && "px-6 py-3.5 text-xs rounded-2xl",
@@ -97,7 +97,7 @@ export const Input = ({ label, error, rightElement, ...props }: any) => (
       <input
         {...props}
         className={cn(
-          "w-full bg-zinc-950 border border-zinc-800 rounded-2xl px-5 py-4 text-sm text-white placeholder:text-zinc-700 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all",
+          "w-full bg-zinc-950 border border-zinc-800 rounded-2xl px-5 py-4 text-sm text-white placeholder:text-zinc-700 focus:outline-none focus:border-primary/50 focus:ring-4 focus:ring-primary/20 transition-all focus-visible:ring-primary focus-visible:border-primary",
           error && "border-red-500/50 focus:border-red-500",
           rightElement && "pr-32",
           props.className
@@ -120,7 +120,7 @@ export const Select = ({ label, error, children, ...props }: any) => (
       <select
         {...props}
         className={cn(
-          "w-full bg-zinc-950 border border-zinc-800 rounded-2xl px-5 py-4 text-sm text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all appearance-none cursor-pointer",
+          "w-full bg-zinc-950 border border-zinc-800 rounded-2xl px-5 py-4 text-sm text-white focus:outline-none focus:border-primary/50 focus:ring-4 focus:ring-primary/20 transition-all appearance-none cursor-pointer focus-visible:ring-primary focus-visible:border-primary",
           error && "border-red-500/50 focus:border-red-500",
           props.className
         )}

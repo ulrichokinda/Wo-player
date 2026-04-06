@@ -2,12 +2,13 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Logo } from './Logo';
 import { GoogleGenAI } from "@google/genai";
-import { CreditCard, Users, History, PlusCircle, ShieldCheck, TrendingUp, ShoppingBag, User, Store, Search, LayoutGrid, Globe, Server, Download, Copy, ExternalLink, Zap, ArrowLeft, Clock, AlertCircle, X, ChevronRight, UserCheck, Lock, RotateCcw, UserMinus, List, Trash2, Edit, Settings, Smartphone, Camera, Sparkles, CheckCircle2, Filter, MoreVertical, DownloadCloud } from 'lucide-react';
+import { CreditCard, Users, History, PlusCircle, ShieldCheck, TrendingUp, ShoppingBag, User, Store, Search, LayoutGrid, Globe, Server, Download, Copy, ExternalLink, Zap, ArrowLeft, Clock, AlertCircle, X, ChevronRight, UserCheck, Lock, RotateCcw, UserMinus, List, Trash2, Edit, Settings, Smartphone, Camera, Sparkles, CheckCircle2, Filter, MoreVertical, DownloadCloud, Tv } from 'lucide-react';
 import { auth } from '../firebase';
 import { Focusable } from './TVFocusManager';
 import { api, UserProfile, Activation as ApiActivation, Payment as ApiPayment, isTrialExpired } from '../services/api';
 import { PAYMENT_METHODS } from '../constants';
 import { cn, Card, Badge, Button, Input, Select, Textarea, Toast } from './ui';
+import { validateMacAddress, formatMacAddress, validatePhone } from '../lib/validation';
 
 interface Activation {
   id: number;
@@ -128,7 +129,9 @@ export const ResellerPanel: React.FC<ResellerPanelProps> = ({ activeTab, setActi
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [selectedPack, setSelectedPack] = useState<{ qty: number; price: number } | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'momo' | 'direct_momo' | 'moneyfusion'>('direct_momo');
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'momo' | 'direct_momo' | 'moneyfusion'>('moneyfusion');
+  const [selectedCountry, setSelectedCountry] = useState(userCountry);
+  const [selectedProviderId, setSelectedProviderId] = useState('');
   const [phoneNumber, setPhoneNumber] = useState(user.phone || '');
   const [momoProvider, setMomoProvider] = useState<'orange' | 'mtn' | 'moov' | 'wave' | 'airtel' | 'mtn_cg' | 'airtel_cg'>('orange');
   const [aiValidationMode, setAiValidationMode] = useState(false);
@@ -218,6 +221,12 @@ export const ResellerPanel: React.FC<ResellerPanelProps> = ({ activeTab, setActi
   const handleActivate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!targetMac || !auth.currentUser) return;
+    
+    if (!validateMacAddress(targetMac)) {
+      notify("Adresse MAC invalide. Format: 00:11:22:33:44:55", "error");
+      return;
+    }
+
     setLoading(true);
     try {
       const resellerId = auth.currentUser.uid;
@@ -248,6 +257,12 @@ export const ResellerPanel: React.FC<ResellerPanelProps> = ({ activeTab, setActi
 
   const handleFullActivation = async () => {
     if (!activationMac || !auth.currentUser) return;
+
+    if (!validateMacAddress(activationMac)) {
+      notify("Adresse MAC invalide. Format: 00:11:22:33:44:55", "error");
+      return;
+    }
+
     setLoading(true);
     try {
       const resellerId = auth.currentUser.uid;
@@ -278,20 +293,29 @@ export const ResellerPanel: React.FC<ResellerPanelProps> = ({ activeTab, setActi
 
   const handleConfirmPayment = async () => {
     if (!selectedPack || !auth.currentUser) return;
+    
+    if (paymentMethod === 'moneyfusion' || paymentMethod === 'direct_momo') {
+      if (!validatePhone(phoneNumber)) {
+        notify("Numéro de téléphone invalide", "error");
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       const userId = auth.currentUser.uid;
-      const id = Math.random().toString(36).substr(2, 9);
-      const externalId = (paymentMethod === 'direct_momo' ? "DIR-" : paymentMethod === 'moneyfusion' ? "MF-" : "FLW-") + Math.random().toString(36).substr(2, 9);
       
       if (paymentMethod === 'moneyfusion') {
+        const provider = PAYMENT_METHODS[selectedCountry as keyof typeof PAYMENT_METHODS]?.find(p => p.id === selectedProviderId);
+        
         await api.initiateMoneyFusion({
           userId,
           amount: selectedPack.price,
           phoneNumber,
-          credits_purchased: selectedPack.qty
+          credits_purchased: selectedPack.qty,
+          provider: provider?.id || 'unknown'
         });
-      } else if (paymentMethod === 'yabetoopay') {
+      } else if (paymentMethod === 'direct_momo') {
         await api.initiateYabetooPay({
           userId,
           amount: selectedPack.price,
@@ -300,6 +324,8 @@ export const ResellerPanel: React.FC<ResellerPanelProps> = ({ activeTab, setActi
           methodId: momoProvider
         });
       } else {
+        const id = Math.random().toString(36).substr(2, 9);
+        const externalId = Math.random().toString(36).substr(2, 9);
         await api.createPayment({
           id,
           userId,
@@ -541,9 +567,10 @@ export const ResellerPanel: React.FC<ResellerPanelProps> = ({ activeTab, setActi
                       <Input
                         type="text"
                         value={targetMac}
-                        onChange={(e: any) => setTargetMac(e.target.value)}
+                        onChange={(e: any) => setTargetMac(formatMacAddress(e.target.value))}
                         placeholder="MAC (00:1A:...)"
                         className="bg-zinc-100 border-2 border-transparent text-black placeholder:text-zinc-400 focus:border-primary focus:bg-white md:min-w-[250px] py-4"
+                        error={targetMac && !validateMacAddress(targetMac) ? "Format MAC invalide" : null}
                         required
                       />
                       <Select
@@ -1300,13 +1327,14 @@ export const ResellerPanel: React.FC<ResellerPanelProps> = ({ activeTab, setActi
                 <Input 
                   label="Adresse MAC de l'appareil"
                   value={checkMacInput}
-                  onChange={(e: any) => setCheckMacInput(e.target.value.toUpperCase())}
+                  onChange={(e: any) => setCheckMacInput(formatMacAddress(e.target.value))}
                   placeholder="00:11:22:33:44:55"
                   className="text-lg font-mono"
+                  error={checkMacInput && !validateMacAddress(checkMacInput) ? "Format MAC invalide" : null}
                   rightElement={
                     <Button 
                       onClick={async () => {
-                        if (!checkMacInput) return;
+                        if (!checkMacInput || !validateMacAddress(checkMacInput)) return;
                         setLoading(true);
                         try {
                           const result = await api.checkMacStatus(checkMacInput);
@@ -1691,9 +1719,10 @@ export const ResellerPanel: React.FC<ResellerPanelProps> = ({ activeTab, setActi
                       <Input 
                         label="Votre adresse MAC"
                         value={activationMac}
-                        onChange={(e: any) => setActivationMac(e.target.value.toUpperCase())}
+                        onChange={(e: any) => setActivationMac(formatMacAddress(e.target.value))}
                         placeholder="00:1A:79:..."
                         className="text-lg font-mono"
+                        error={activationMac && !validateMacAddress(activationMac) ? "Format MAC invalide" : null}
                       />
                       <Textarea 
                         label="Note"
@@ -1874,6 +1903,17 @@ export const ResellerPanel: React.FC<ResellerPanelProps> = ({ activeTab, setActi
                         <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Mode de paiement</p>
                         <div className="grid grid-cols-2 gap-3">
                           <button 
+                            onClick={() => setPaymentMethod('moneyfusion')}
+                            className={`flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all relative overflow-hidden group ${paymentMethod === 'moneyfusion' ? 'border-primary bg-primary/5 text-primary' : 'border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}
+                          >
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-primary flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                              <Globe size={20} />
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-widest">Mobile Money</span>
+                            <span className="text-[7px] font-black uppercase tracking-[0.2em] opacity-40">Afrique Francophone</span>
+                          </button>
+
+                          <button 
                             onClick={() => setPaymentMethod('direct_momo')}
                             className={`flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all relative overflow-hidden group ${paymentMethod === 'direct_momo' ? 'border-primary bg-primary/5 text-primary' : 'border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}
                           >
@@ -1887,28 +1927,6 @@ export const ResellerPanel: React.FC<ResellerPanelProps> = ({ activeTab, setActi
                             <span className="text-[7px] font-black uppercase tracking-[0.2em] opacity-40">Congo Brazzaville</span>
                           </button>
                           
-                          {PAYMENT_METHODS[userCountry as keyof typeof PAYMENT_METHODS] && (
-                            <button 
-                              onClick={() => setPaymentMethod('yabetoopay')}
-                              className={`flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all relative overflow-hidden group ${paymentMethod === 'yabetoopay' ? 'border-primary bg-primary/5 text-primary' : 'border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}
-                            >
-                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-primary flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
-                                <Globe size={20} />
-                              </div>
-                              <span className="font-black text-[10px] uppercase tracking-widest">YabetooPay</span>
-                            </button>
-                          )}
-
-                          <button 
-                            onClick={() => setPaymentMethod('moneyfusion')}
-                            className={`flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all relative overflow-hidden group ${paymentMethod === 'moneyfusion' ? 'border-primary bg-primary/5 text-primary' : 'border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}
-                          >
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-primary flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
-                              <Globe size={20} />
-                            </div>
-                            <span className="text-[10px] font-black uppercase tracking-widest">MoneyFusion</span>
-                            <span className="text-[7px] font-black uppercase tracking-[0.2em] opacity-40">Afrique Francophone</span>
-                          </button>
                           <button 
                             onClick={() => setPaymentMethod('card')}
                             className={`flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all relative overflow-hidden group ${paymentMethod === 'card' ? 'border-primary bg-primary/5 text-primary' : 'border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}
@@ -2079,23 +2097,51 @@ export const ResellerPanel: React.FC<ResellerPanelProps> = ({ activeTab, setActi
 
                       {paymentMethod === 'moneyfusion' && (
                         <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
-                          <div className="p-6 bg-primary/5 border border-primary/10 rounded-3xl space-y-4">
-                            <div className="flex items-center gap-3 text-primary">
-                              <Globe size={20} />
-                              <p className="text-xs font-black uppercase tracking-widest">PawaPay Global</p>
-                            </div>
-                            <p className="text-sm text-zinc-400 leading-relaxed">
-                              PawaPay vous permet de payer via Mobile Money dans plusieurs pays (Sénégal, Mali, Burkina Faso, etc.).
-                            </p>
-                            <div className="space-y-2">
-                              <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Numéro de téléphone</label>
-                              <input 
+                          <div className="p-6 bg-zinc-900/50 border border-zinc-800 rounded-3xl space-y-6">
+                            <div className="space-y-4">
+                              <Select 
+                                label="Pays"
+                                value={selectedCountry}
+                                onChange={(e: any) => {
+                                  setSelectedCountry(e.target.value);
+                                  setSelectedProviderId('');
+                                }}
+                              >
+                                {Object.keys(PAYMENT_METHODS).map(country => (
+                                  <option key={country} value={country}>{country}</option>
+                                ))}
+                              </Select>
+
+                              <div className="space-y-3">
+                                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Opérateur Mobile</p>
+                                <div className="grid grid-cols-2 gap-3">
+                                  {PAYMENT_METHODS[selectedCountry as keyof typeof PAYMENT_METHODS]?.map((p) => (
+                                    <button 
+                                      key={p.id}
+                                      onClick={() => setSelectedProviderId(p.id)}
+                                      className={`p-4 rounded-2xl border flex flex-col items-center justify-center gap-2 transition-all ${selectedProviderId === p.id ? 'bg-primary/10 border-primary text-primary' : 'bg-zinc-950 text-zinc-500 border-zinc-800 hover:border-zinc-700'}`}
+                                    >
+                                      <Smartphone size={20} />
+                                      <span className="font-black text-[9px] uppercase tracking-widest text-center">{p.name}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <Input 
+                                label="Numéro de téléphone Mobile Money"
                                 type="tel" 
                                 value={phoneNumber}
-                                onChange={(e) => setPhoneNumber(e.target.value)}
-                                placeholder="Ex: +221..."
-                                className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl px-5 py-4 text-white font-bold focus:border-primary outline-none transition-all"
+                                onChange={(e: any) => setPhoneNumber(e.target.value)}
+                                placeholder="Ex: +242..."
+                                error={phoneNumber && !validatePhone(phoneNumber) ? "Numéro invalide" : null}
                               />
+                            </div>
+
+                            <div className="p-4 bg-primary/5 border border-primary/10 rounded-2xl">
+                              <p className="text-[10px] text-zinc-400 leading-relaxed text-center">
+                                Vous recevrez une demande de confirmation sur votre téléphone après avoir cliqué sur payer.
+                              </p>
                             </div>
                           </div>
                         </div>
@@ -2211,23 +2257,70 @@ export const ResellerPanel: React.FC<ResellerPanelProps> = ({ activeTab, setActi
                       </button>
                     </>
                   ) : (
-                    <>
-                      <button onClick={() => { alert('Gérer'); setManagedClient(null); }} className="group p-4 md:p-5 bg-zinc-800/50 hover:bg-blue-500 rounded-2xl text-left transition-all duration-300">
-                        <Settings size={24} className="text-blue-500 group-hover:text-white mb-3 transition-colors" />
-                        <p className="text-white font-black text-base mb-0.5">Gérer la liste</p>
-                        <p className="text-zinc-500 group-hover:text-white/70 text-[10px] font-bold leading-tight">Configuration des chaînes.</p>
-                      </button>
-                      <button onClick={() => { alert('Modifier'); setManagedClient(null); }} className="group p-4 md:p-5 bg-zinc-800/50 hover:bg-amber-500 rounded-2xl text-left transition-all duration-300">
-                        <Edit size={24} className="text-amber-500 group-hover:text-white mb-3 transition-colors" />
-                        <p className="text-white font-black text-base mb-0.5">Modifier</p>
-                        <p className="text-zinc-500 group-hover:text-white/70 text-[10px] font-bold leading-tight">Mettre à jour les liens.</p>
-                      </button>
-                      <button onClick={() => { alert('Supprimé'); setManagedClient(null); }} className="sm:col-span-2 group p-4 md:p-5 bg-red-500/5 hover:bg-red-500 rounded-2xl text-left transition-all duration-300 border border-red-500/10">
-                        <Trash2 size={24} className="text-red-500 group-hover:text-white mb-3 transition-colors" />
-                        <p className="text-white font-black text-base mb-0.5">Supprimer tous les liens</p>
-                        <p className="text-zinc-500 group-hover:text-white/70 text-[10px] font-bold leading-tight">Réinitialisation de la playlist.</p>
-                      </button>
-                    </>
+                    <div className="sm:col-span-2 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-black uppercase tracking-widest text-zinc-500">Chaînes de la Playlist</h3>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          icon={Copy}
+                          onClick={() => {
+                            const m3uLink = `http://skyplayer.live/get.php?mac=${managedClient.target_mac}&type=m3u_plus`;
+                            navigator.clipboard.writeText(m3uLink);
+                            notify('Lien M3U complet copié !', 'success');
+                          }}
+                        >
+                          Lien M3U Complet
+                        </Button>
+                      </div>
+                      
+                      <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                        {[
+                          { name: 'TF1 HD', category: 'France' },
+                          { name: 'France 2 HD', category: 'France' },
+                          { name: 'M6 HD', category: 'France' },
+                          { name: 'Canal+ HD', category: 'France' },
+                          { name: 'beIN Sports 1', category: 'Sports' },
+                          { name: 'RMC Sport 1', category: 'Sports' },
+                          { name: 'National Geographic', category: 'Documentaires' },
+                          { name: 'Disney Channel', category: 'Enfants' },
+                        ].map((channel, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-3 bg-zinc-800/30 border border-zinc-800 rounded-xl group hover:border-blue-500/30 transition-all">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-zinc-800 rounded-lg flex items-center justify-center text-zinc-500">
+                                <Tv size={14} />
+                              </div>
+                              <div>
+                                <p className="text-sm font-bold text-white">{channel.name}</p>
+                                <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest">{channel.category}</p>
+                              </div>
+                            </div>
+                            <button 
+                              onClick={() => {
+                                const channelLink = `http://skyplayer.live/stream.php?mac=${managedClient.target_mac}&channel=${channel.name.replace(/\s+/g, '_')}`;
+                                navigator.clipboard.writeText(channelLink);
+                                notify(`Lien pour ${channel.name} copié !`, 'success');
+                              }}
+                              className="p-2 bg-zinc-800 text-zinc-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                              title="Copier le lien M3U de la chaîne"
+                            >
+                              <Copy size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 pt-4">
+                        <button onClick={() => { alert('Modifier'); setManagedClient(null); }} className="group p-4 bg-zinc-800/50 hover:bg-amber-500 rounded-2xl text-left transition-all duration-300">
+                          <Edit size={20} className="text-amber-500 group-hover:text-white mb-2 transition-colors" />
+                          <p className="text-white font-black text-sm">Modifier</p>
+                        </button>
+                        <button onClick={() => { alert('Supprimé'); setManagedClient(null); }} className="group p-4 bg-red-500/5 hover:bg-red-500 rounded-2xl text-left transition-all duration-300 border border-red-500/10">
+                          <Trash2 size={20} className="text-red-500 group-hover:text-white mb-2 transition-colors" />
+                          <p className="text-white font-black text-sm">Réinitialiser</p>
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>

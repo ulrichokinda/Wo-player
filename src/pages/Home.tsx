@@ -1,13 +1,30 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Logo } from '../components/Logo';
 import { Button, Badge } from '../components/ui';
 import { Footer } from '../components/Footer';
-import { CheckCircle2, Menu, X, LayoutDashboard, UserPlus, Download } from 'lucide-react';
+import { CheckCircle2, Menu, X, LayoutDashboard, UserPlus, Download, LogIn } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { auth, onAuthStateChanged } from '../firebase';
 
 export const Home = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handlePlanClick = (e: React.MouseEvent, plan: string) => {
+    if (!user) {
+      e.preventDefault();
+      navigate(`/register?redirect=/payment&plan=${plan}`);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-black text-white overflow-x-hidden">
@@ -16,9 +33,20 @@ export const Home = () => {
         
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-4">
-          <Link to="/dashboard">
-            <Button variant="ghost">Espace Revendeur</Button>
-          </Link>
+          {user ? (
+            <Link to="/dashboard">
+              <Button variant="ghost" icon={LayoutDashboard}>Tableau de Bord</Button>
+            </Link>
+          ) : (
+            <>
+              <Link to="/login">
+                <Button variant="ghost" icon={LogIn}>Connexion</Button>
+              </Link>
+              <Link to="/register">
+                <Button variant="outline" className="border-primary/50 text-primary hover:bg-primary hover:text-black">S'inscrire</Button>
+              </Link>
+            </>
+          )}
           <Link to="/payment">
             <Button>Devenir Revendeur</Button>
           </Link>
@@ -26,7 +54,7 @@ export const Home = () => {
 
         {/* Mobile Menu Button */}
         <button 
-          className="md:hidden p-2 text-primary hover:bg-white/5 rounded-xl transition-colors"
+          className="md:hidden p-2 text-primary hover:bg-white/5 rounded-xl transition-colors focus-visible:ring-2 focus-visible:ring-primary"
           onClick={() => setIsMenuOpen(!isMenuOpen)}
         >
           {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
@@ -43,15 +71,38 @@ export const Home = () => {
             className="fixed inset-0 z-40 bg-black pt-24 px-6 md:hidden"
           >
             <div className="flex flex-col gap-4">
-              <Link to="/dashboard" onClick={() => setIsMenuOpen(false)}>
-                <div className="flex items-center gap-4 p-5 bg-zinc-900 rounded-2xl border border-zinc-800">
-                  <LayoutDashboard className="text-primary" />
-                  <div className="text-left">
-                    <p className="font-bold">Espace Revendeur</p>
-                    <p className="text-xs text-zinc-500">Gérez vos clients et crédits</p>
+              {user ? (
+                <Link to="/dashboard" onClick={() => setIsMenuOpen(false)}>
+                  <div className="flex items-center gap-4 p-5 bg-zinc-900 rounded-2xl border border-zinc-800">
+                    <LayoutDashboard className="text-primary" />
+                    <div className="text-left">
+                      <p className="font-bold">Tableau de Bord</p>
+                      <p className="text-xs text-zinc-500">Gérez vos clients et crédits</p>
+                    </div>
                   </div>
-                </div>
-              </Link>
+                </Link>
+              ) : (
+                <>
+                  <Link to="/login" onClick={() => setIsMenuOpen(false)}>
+                    <div className="flex items-center gap-4 p-5 bg-zinc-900 rounded-2xl border border-zinc-800">
+                      <LogIn className="text-primary" />
+                      <div className="text-left">
+                        <p className="font-bold">Connexion</p>
+                        <p className="text-xs text-zinc-500">Accédez à votre compte</p>
+                      </div>
+                    </div>
+                  </Link>
+                  <Link to="/register" onClick={() => setIsMenuOpen(false)}>
+                    <div className="flex items-center gap-4 p-5 bg-zinc-900 rounded-2xl border border-zinc-800">
+                      <UserPlus className="text-primary" />
+                      <div className="text-left">
+                        <p className="font-bold">S'inscrire</p>
+                        <p className="text-xs text-zinc-500">Créer un compte revendeur</p>
+                      </div>
+                    </div>
+                  </Link>
+                </>
+              )}
               <Link to="/payment" onClick={() => setIsMenuOpen(false)}>
                 <div className="flex items-center gap-4 p-5 bg-primary/10 rounded-2xl border border-primary/20">
                   <UserPlus className="text-primary" />
@@ -121,7 +172,7 @@ export const Home = () => {
                 <li className="flex items-center gap-2"><CheckCircle2 size={16} className="text-primary" /> Support technique 24/7</li>
                 <li className="flex items-center gap-2"><CheckCircle2 size={16} className="text-primary" /> Sans publicité</li>
               </ul>
-              <Link to="/payment">
+              <Link to="/payment" onClick={(e) => handlePlanClick(e, '1an')}>
                 <Button fullWidth size="lg" className="mt-4">Activer maintenant</Button>
               </Link>
             </div>
@@ -142,7 +193,7 @@ export const Home = () => {
                 <li className="flex items-center gap-2"><CheckCircle2 size={16} className="text-primary" /> Priorité sur les nouveautés</li>
                 <li className="flex items-center gap-2"><CheckCircle2 size={16} className="text-primary" /> Support VIP</li>
               </ul>
-              <Link to="/payment">
+              <Link to="/payment" onClick={(e) => handlePlanClick(e, 'vie')}>
                 <Button fullWidth size="lg" variant="outline" className="mt-4 border-primary/50 text-primary hover:bg-primary hover:text-black">Prendre l'offre à vie</Button>
               </Link>
             </div>

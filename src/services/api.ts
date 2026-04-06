@@ -152,7 +152,7 @@ export const api = {
     return newPayment;
   },
 
-  async initiateMoneyFusion(data: { userId: string; amount: number; phoneNumber: string; credits_purchased: number }) {
+  async initiateMoneyFusion(data: { userId: string; amount: number; phoneNumber: string; credits_purchased: number; provider: string }) {
     // Simulate MoneyFusion initiation
     const depositId = Math.random().toString(36).substr(2, 9);
     
@@ -161,7 +161,7 @@ export const api = {
       amount: data.amount,
       credits_purchased: data.credits_purchased,
       payment_method: 'moneyfusion',
-      provider: 'moneyfusion',
+      provider: data.provider,
       status: 'pending',
       external_id: depositId
     });

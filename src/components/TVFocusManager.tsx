@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, createContext, useContext } from 'react';
+import { isKey, TVKeys } from '../lib/TVUtils';
 
 interface FocusContextType {
   focusedId: string | null;
@@ -37,6 +38,17 @@ export const FocusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Back button handling (Tizen: 10009, webOS: 461, etc.)
+      if (isKey(e, 'BACK')) {
+        // If there's a modal or something, we might want to close it first
+        // But for now, we'll just go back in history
+        if (window.history.length > 1) {
+          window.history.back();
+          e.preventDefault();
+        }
+        return;
+      }
+
       const focusableIds = Array.from(elements.keys());
       if (focusableIds.length === 0) return;
 
@@ -96,27 +108,22 @@ export const FocusProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       let nextId = null;
 
-      switch (e.key) {
-        case 'ArrowDown':
-          nextId = findNearest('down');
-          break;
-        case 'ArrowUp':
-          nextId = findNearest('up');
-          break;
-        case 'ArrowLeft':
-          nextId = findNearest('left');
-          break;
-        case 'ArrowRight':
-          nextId = findNearest('right');
-          break;
-        case 'Enter':
-          if (focusedId) {
-            const el = elements.get(focusedId)?.current;
-            el?.click();
-          }
-          return;
-        default:
-          return;
+      if (isKey(e, 'DOWN')) {
+        nextId = findNearest('down');
+      } else if (isKey(e, 'UP')) {
+        nextId = findNearest('up');
+      } else if (isKey(e, 'LEFT')) {
+        nextId = findNearest('left');
+      } else if (isKey(e, 'RIGHT')) {
+        nextId = findNearest('right');
+      } else if (isKey(e, 'ENTER')) {
+        if (focusedId) {
+          const el = elements.get(focusedId)?.current;
+          el?.click();
+        }
+        return;
+      } else {
+        return;
       }
 
       if (nextId && nextId !== focusedId) {

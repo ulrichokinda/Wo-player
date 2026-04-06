@@ -9,13 +9,43 @@ interface LogoProps {
 export const Logo: React.FC<LogoProps> = ({ className = "", size = 40, showText = true }) => {
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      <img 
-        src="/logo.svg" 
-        alt="Logo" 
-        style={{ width: size, height: size }} 
-        className="object-contain"
-        referrerPolicy="no-referrer"
-      />
+      <svg 
+        width={size} 
+        height={size} 
+        viewBox="0 0 100 100" 
+        fill="none" 
+        xmlns="http://www.w3.org/2000/svg"
+        className="shrink-0"
+      >
+        {/* Background Circle with Gradient */}
+        <defs>
+          <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="var(--color-primary)" />
+            <stop offset="100%" stopColor="#0EA5E9" />
+          </linearGradient>
+        </defs>
+        
+        <rect width="100" height="100" rx="24" fill="url(#logoGradient)" />
+        
+        {/* Stylized Play Button / S Shape */}
+        <path 
+          d="M35 30L70 50L35 70V30Z" 
+          fill="white" 
+          stroke="white" 
+          strokeWidth="4" 
+          strokeLinejoin="round"
+        />
+        
+        {/* Sky Accent (Wing/Cloud line) */}
+        <path 
+          d="M25 75C40 75 50 65 75 65" 
+          stroke="white" 
+          strokeWidth="6" 
+          strokeLinecap="round" 
+          opacity="0.3"
+        />
+      </svg>
+      
       {showText && (
         <div className="flex flex-col leading-none">
           <span className="text-2xl lg:text-3xl font-black text-white tracking-tighter">

@@ -18,6 +18,7 @@ db.exec(`
     uid TEXT PRIMARY KEY,
     email TEXT UNIQUE,
     username TEXT,
+    password TEXT,
     role TEXT DEFAULT 'client',
     credits INTEGER DEFAULT 0,
     phone TEXT,
@@ -59,6 +60,11 @@ db.exec(`
   );
 `);
 
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'sky-player-secret-key-2026';
+
 async function startServer() {
   const app = express();
   app.use(cors());
@@ -70,12 +76,48 @@ async function startServer() {
   });
 
   // API Routes
-  app.post('/api/auth/register', (req, res) => {
-    const { uid, email, username, phone, country, role } = req.body;
+  app.post('/api/auth/register', async (req, res) => {
+    const { uid, email, username, password, phone, country, role } = req.body;
     try {
-      const stmt = db.prepare('INSERT OR IGNORE INTO users (uid, email, username, phone, country, role) VALUES (?, ?, ?, ?, ?, ?)');
-      stmt.run(uid, email, username, phone, country, role || 'client');
-      res.json({ success: true });
+      let hashedPassword = null;
+      if (password) {
+        hashedPassword = await bcrypt.hash(password, 10);
+      }
+      
+      const id = uid || Math.random().toString(36).substr(2, 9);
+      const stmt = db.prepare('INSERT OR IGNORE INTO users (uid, email, username, password, phone, country, role) VALUES (?, ?, ?, ?, ?, ?, ?)');
+      stmt.run(id, email, username, hashedPassword, phone, country, role || 'client');
+      
+      const user = db.prepare('SELECT * FROM users WHERE uid = ?').get(id) as any;
+      const token = jwt.sign({ uid: user.uid, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+      
+      res.json({ success: true, user, token });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/auth/login', async (req, res) => {
+    const { email, password } = req.body;
+    try {
+      const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email) as any;
+      if (!user) {
+        return res.status(401).json({ error: 'Utilisateur non trouvé' });
+      }
+      
+      if (user.password) {
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+          return res.status(401).json({ error: 'Mot de passe incorrect' });
+        }
+      } else if (password) {
+        // User exists but has no password (maybe registered via Google previously)
+        // We could set a password here or require them to use Google
+        return res.status(401).json({ error: 'Ce compte utilise une connexion sociale. Veuillez utiliser Google.' });
+      }
+
+      const token = jwt.sign({ uid: user.uid, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+      res.json({ success: true, user, token });
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }

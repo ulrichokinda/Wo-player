@@ -7,7 +7,7 @@ import {
   FileText, HelpCircle, AlertCircle, LogOut, Plus, 
   CheckCircle2, Copy, ExternalLink, MessageSquare, FileSpreadsheet,
   RotateCcw, Filter, Edit2, Trash2, CalendarPlus, MoreVertical, RefreshCw,
-  Menu, X
+  Menu, X, List, Tv, Settings
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
@@ -27,6 +27,8 @@ const TRANSACTIONS = [
   { date: '28/03/2026', type: 'Activation', amount: '-1 Crédit', status: 'TERMINÉ' },
 ];
 
+import { auth, onAuthStateChanged, signOut } from '../firebase';
+
 export const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('Clients');
   const [searchTerm, setSearchTerm] = useState('');
@@ -38,7 +40,103 @@ export const Dashboard = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [user, setUser] = useState<any>(null);
+  const [dbUser, setDbUser] = useState<any>(null);
+  const [activations, setActivations] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [macCheckResult, setMacCheckResult] = useState<any>(null);
+  const [macToCheck, setMacToCheck] = useState('');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        navigate('/login');
+      } else {
+        setUser(user);
+        await fetchUserData(user.uid, user);
+      }
+    });
+    return () => unsubscribe();
+  }, [navigate]);
+
+  const fetchUserData = async (uid: string, fbUser: any) => {
+    try {
+      const response = await fetch(`/api/users/${uid}`);
+      if (response.ok) {
+        const data = await response.json();
+        setDbUser(data);
+        fetchActivations(uid);
+        fetchTransactions(uid);
+      } else {
+        // Register user if not found (Google login case)
+        await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            uid: fbUser.uid,
+            email: fbUser.email,
+            username: fbUser.displayName || fbUser.email?.split('@')[0],
+            role: 'client'
+          }),
+        });
+        const retryResponse = await fetch(`/api/users/${uid}`);
+        const retryData = await retryResponse.json();
+        setDbUser(retryData);
+        fetchActivations(uid);
+        fetchTransactions(uid);
+      }
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+    }
+  };
+
+  const fetchActivations = async (uid: string) => {
+    try {
+      const response = await fetch(`/api/activations/${uid}`);
+      if (response.ok) {
+        const data = await response.json();
+        setActivations(data);
+      }
+    } catch (error) {
+      console.error("Error fetching activations:", error);
+    }
+  };
+
+  const fetchTransactions = async (uid: string) => {
+    try {
+      const response = await fetch(`/api/payments/${uid}`);
+      if (response.ok) {
+        const data = await response.json();
+        setTransactions(data);
+      }
+    } catch (error) {
+      console.error("Error fetching transactions:", error);
+    }
+  };
+
+  const handleCheckMac = async () => {
+    if (!macToCheck) return;
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/check-mac/${macToCheck}`);
+      const data = await response.json();
+      setMacCheckResult(data);
+    } catch (error) {
+      showToast("Erreur lors de la vérification", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigate('/login');
+    } catch (error: any) {
+      showToast("Erreur lors de la déconnexion", "error");
+    }
+  };
 
   const menuItems = [
     { name: 'Clients', icon: Users },
@@ -107,17 +205,20 @@ export const Dashboard = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'Clients':
-        const filteredCustomers = CUSTOMERS.filter(c => {
-          const matchesSearch = c.mac.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                               c.name.toLowerCase().includes(searchTerm.toLowerCase());
-          const matchesStatus = statusFilter === 'Tous' || c.status === statusFilter;
-          const matchesSystem = systemFilter === 'Tous' || c.system === systemFilter;
-          const matchesCountry = countryFilter === 'Tous' || c.country === countryFilter;
+        const displayActivations = activations.length > 0 ? activations : CUSTOMERS;
+        const filteredCustomers = displayActivations.filter(c => {
+          const mac = c.mac || c.target_mac || '';
+          const name = c.name || c.note || 'Client';
+          const matchesSearch = mac.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                               name.toLowerCase().includes(searchTerm.toLowerCase());
+          const matchesStatus = statusFilter === 'Tous' || (c.status || 'ACTIF') === statusFilter;
+          const matchesSystem = systemFilter === 'Tous' || (c.system || 'N/A') === systemFilter;
+          const matchesCountry = countryFilter === 'Tous' || (c.country || 'N/A') === countryFilter;
           return matchesSearch && matchesStatus && matchesSystem && matchesCountry;
         });
 
-        const systems = ['Tous', ...Array.from(new Set(CUSTOMERS.map(c => c.system)))];
-        const countries = ['Tous', ...Array.from(new Set(CUSTOMERS.map(c => c.country)))];
+        const systems = ['Tous', ...Array.from(new Set(displayActivations.map(c => c.system || 'N/A')))];
+        const countries = ['Tous', ...Array.from(new Set(displayActivations.map(c => c.country || 'N/A')))];
 
         return (
           <div className="space-y-6">
@@ -179,15 +280,15 @@ export const Dashboard = () => {
                   <tbody>
                     {filteredCustomers.map((c, i) => (
                       <tr key={i} className="border-b border-zinc-900 hover:bg-zinc-950 transition-colors">
-                        <td className="p-4 font-mono text-primary">{c.mac}</td>
-                        <td className="p-4 font-bold">{c.name}</td>
-                        <td className="p-4 text-zinc-400">{c.country}</td>
-                        <td className="p-4 text-zinc-400">{c.system}</td>
-                        <td className="p-4 text-zinc-500">{c.version}</td>
+                        <td className="p-4 font-mono text-primary">{c.mac || c.target_mac}</td>
+                        <td className="p-4 font-bold">{c.name || c.note || 'Client'}</td>
+                        <td className="p-4 text-zinc-400">{c.country || 'N/A'}</td>
+                        <td className="p-4 text-zinc-400">{c.system || 'N/A'}</td>
+                        <td className="p-4 text-zinc-500">{c.version || 'N/A'}</td>
                         <td className="p-4">
-                          <Badge variant={c.status === 'ACTIF' ? 'success' : 'error'}>{c.status}</Badge>
+                          <Badge variant={(c.status || 'ACTIF') === 'ACTIF' ? 'success' : 'error'}>{c.status || 'ACTIF'}</Badge>
                         </td>
-                        <td className="p-4 text-zinc-400">{c.expiry}</td>
+                        <td className="p-4 text-zinc-400">{c.expiry || new Date(new Date(c.createdAt).getTime() + 365*24*60*60*1000).toLocaleDateString('fr-FR')}</td>
                         <td className="p-4 text-right">
                           <div className="flex justify-end gap-2">
                             <button 
@@ -196,6 +297,13 @@ export const Dashboard = () => {
                               title="Prolonger"
                             >
                               <CalendarPlus size={16} />
+                            </button>
+                            <button 
+                              onClick={() => { setSelectedCustomer(c); setShowModal('playlist'); }}
+                              className="p-2 hover:bg-white/5 text-zinc-400 hover:text-white rounded-lg transition-colors"
+                              title="Playlist"
+                            >
+                              <List size={16} />
                             </button>
                             <button 
                               onClick={() => { setSelectedCustomer(c); setShowModal('edit-client'); }}
@@ -234,8 +342,10 @@ export const Dashboard = () => {
           <Card className="max-w-2xl space-y-6">
             <h2 className="text-xl font-bold">Paramètres du profil</h2>
             <div className="grid grid-cols-2 gap-4">
-              <Input label="Nom complet" defaultValue="Ulrich Okinda" />
-              <Input label="Adresse Email" defaultValue="inestaulrichokinda@gmail.com" />
+              <Input label="Nom complet" defaultValue={dbUser?.username || user?.displayName || ''} />
+              <Input label="Adresse Email" defaultValue={user?.email || ''} readOnly />
+              <Input label="Téléphone" defaultValue={dbUser?.phone || ''} />
+              <Input label="Pays" defaultValue={dbUser?.country || ''} />
               <Input label="Nouveau mot de passe" type="password" placeholder="••••••••" />
               <Input label="Confirmer le mot de passe" type="password" placeholder="••••••••" />
             </div>
@@ -274,19 +384,58 @@ export const Dashboard = () => {
           <Card className="max-w-md space-y-6">
             <h2 className="text-xl font-bold">Vérifier le statut MAC</h2>
             <p className="text-zinc-500 text-sm">Entrez une adresse MAC pour vérifier son statut d'activation et sa date d'expiration.</p>
-            <Input placeholder="00:00:00:00:00:00" label="Adresse MAC" />
+            <Input 
+              placeholder="00:00:00:00:00:00" 
+              label="Adresse MAC" 
+              value={macToCheck}
+              onChange={(e: any) => setMacToCheck(e.target.value)}
+            />
             <Button 
               fullWidth 
               icon={Search} 
               loading={loading}
-              onClick={() => handleAction("Vérification MAC", async () => {})}
+              onClick={handleCheckMac}
             >
               Vérifier le statut
             </Button>
+
+            {macCheckResult && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={cn(
+                  "p-4 rounded-xl border",
+                  macCheckResult.active ? "bg-emerald-500/10 border-emerald-500/20" : "bg-red-500/10 border-red-500/20"
+                )}
+              >
+                {macCheckResult.active ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-emerald-500 font-bold">
+                      <CheckCircle2 size={16} />
+                      <span>Appareil Actif</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <span className="text-zinc-500">Expiration:</span>
+                      <span className="text-white font-bold">{macCheckResult.expiry}</span>
+                      <span className="text-zinc-500">Dernière connexion:</span>
+                      <span className="text-white">{macCheckResult.last_seen}</span>
+                      <span className="text-zinc-500">Version:</span>
+                      <span className="text-white">{macCheckResult.version}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-red-500 font-bold">
+                    <AlertCircle size={16} />
+                    <span>{macCheckResult.error || "Non activé"}</span>
+                  </div>
+                )}
+              </motion.div>
+            )}
           </Card>
         );
 
       case 'Aperçu du solde':
+        const displayTransactions = transactions.length > 0 ? transactions : TRANSACTIONS;
         return (
           <div className="space-y-6">
             <h2 className="text-xl font-bold">Historique des transactions</h2>
@@ -301,14 +450,14 @@ export const Dashboard = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {TRANSACTIONS.map((t, i) => (
+                  {displayTransactions.map((t, i) => (
                     <tr key={i} className="border-b border-zinc-900">
-                      <td className="p-4 text-zinc-400">{t.date}</td>
-                      <td className="p-4 font-bold">{t.type}</td>
-                      <td className={`p-4 font-bold ${t.amount.startsWith('+') ? 'text-emerald-500' : 'text-red-500'}`}>
-                        {t.amount}
+                      <td className="p-4 text-zinc-400">{t.date || new Date(t.createdAt).toLocaleDateString('fr-FR')}</td>
+                      <td className="p-4 font-bold">{t.type || (t.amount > 0 ? 'Achat' : 'Activation')}</td>
+                      <td className={`p-4 font-bold ${(t.amount?.toString().startsWith('+') || t.status === 'completed') ? 'text-emerald-500' : 'text-red-500'}`}>
+                        {t.amount?.toString().startsWith('+') || t.amount?.toString().startsWith('-') ? t.amount : (t.status === 'completed' ? `+${t.credits_purchased} Crédits` : `-${t.credits_used} Crédits`)}
                       </td>
-                      <td className="p-4"><Badge variant="success">{t.status}</Badge></td>
+                      <td className="p-4"><Badge variant={t.status === 'completed' || t.status === 'TERMINÉ' ? 'success' : 'info'}>{t.status}</Badge></td>
                     </tr>
                   ))}
                 </tbody>
@@ -464,8 +613,8 @@ export const Dashboard = () => {
       )}>
         <div className="flex items-center justify-between mb-8 md:block">
           <div className="space-y-1">
-            <h2 className="font-bold text-lg">Ulrich Okinda</h2>
-            <p className="text-zinc-500 text-sm truncate">inestaulrichokinda@gmail.com</p>
+            <h2 className="font-bold text-lg">{dbUser?.username || user?.displayName || user?.email?.split('@')[0] || 'Utilisateur'}</h2>
+            <p className="text-zinc-500 text-sm truncate">{user?.email}</p>
           </div>
           <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-2 text-zinc-500">
             <X size={20} />
@@ -478,7 +627,7 @@ export const Dashboard = () => {
               key={item.name} 
               onClick={() => { setActiveTab(item.name); setIsSidebarOpen(false); }}
               className={cn(
-                "flex items-center gap-3 w-full p-3 rounded-xl transition-all text-sm font-medium",
+                "flex items-center gap-3 w-full p-3 rounded-xl transition-all text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 activeTab === item.name 
                   ? "bg-primary text-black shadow-lg shadow-primary/20" 
                   : "text-zinc-400 hover:bg-zinc-900 hover:text-white"
@@ -492,7 +641,7 @@ export const Dashboard = () => {
 
         <div className="pt-6 border-t border-zinc-800 mt-6">
           <button 
-            onClick={() => navigate('/')}
+            onClick={handleLogout}
             className="flex items-center gap-3 w-full p-3 rounded-xl text-red-500 hover:bg-red-500/10 transition-all text-sm font-medium"
           >
             <LogOut size={18} />
@@ -511,7 +660,7 @@ export const Dashboard = () => {
               <CreditCard size={18} className="text-primary" />
               <div>
                 <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest">Solde</p>
-                <p className="text-sm text-primary font-black">4 CRÉDITS</p>
+                <p className="text-sm text-primary font-black">{dbUser?.credits || 0} CRÉDITS</p>
               </div>
             </Card>
           </div>
@@ -590,6 +739,70 @@ export const Dashboard = () => {
                   >
                     Confirmer la prolongation
                   </Button>
+                </div>
+              </>
+            ) : showModal === 'playlist' ? (
+              <>
+                <h2 className="text-2xl font-black italic">Gestion Playlist</h2>
+                <div className="space-y-4">
+                  <div className="p-4 bg-zinc-950 rounded-xl border border-zinc-800">
+                    <p className="text-xs text-zinc-500">Client : <span className="text-white font-bold">{selectedCustomer?.name || selectedCustomer?.note}</span></p>
+                    <p className="text-xs text-zinc-500">MAC : <span className="text-primary font-mono">{selectedCustomer?.mac || selectedCustomer?.target_mac}</span></p>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-black uppercase tracking-widest text-zinc-500">Chaînes</h3>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      icon={Copy}
+                      onClick={() => {
+                        const m3uLink = `http://skyplayer.live/get.php?mac=${selectedCustomer?.mac || selectedCustomer?.target_mac}&type=m3u_plus`;
+                        navigator.clipboard.writeText(m3uLink);
+                        showToast('Lien M3U complet copié !', 'success');
+                      }}
+                    >
+                      Lien M3U
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+                    {[
+                      { name: 'TF1 HD', category: 'France' },
+                      { name: 'France 2 HD', category: 'France' },
+                      { name: 'M6 HD', category: 'France' },
+                      { name: 'beIN Sports 1', category: 'Sports' },
+                      { name: 'Disney Channel', category: 'Enfants' },
+                    ].map((channel, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-3 bg-zinc-800/30 border border-zinc-800 rounded-xl group hover:border-primary/30 transition-all">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-zinc-800 rounded-lg flex items-center justify-center text-zinc-500">
+                            <Tv size={14} />
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-white">{channel.name}</p>
+                            <p className="text-[10px] text-zinc-500 font-black uppercase tracking-widest">{channel.category}</p>
+                          </div>
+                        </div>
+                        <button 
+                          onClick={() => {
+                            const channelLink = `http://skyplayer.live/stream.php?mac=${selectedCustomer?.mac || selectedCustomer?.target_mac}&channel=${channel.name.replace(/\s+/g, '_')}`;
+                            navigator.clipboard.writeText(channelLink);
+                            showToast(`Lien pour ${channel.name} copié !`, 'success');
+                          }}
+                          className="p-2 bg-zinc-800 text-zinc-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                          title="Copier le lien M3U de la chaîne"
+                        >
+                          <Copy size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 pt-2">
+                    <Button variant="outline" fullWidth onClick={() => setShowModal(null)}>Fermer</Button>
+                    <Button fullWidth onClick={() => { alert('Réinitialisé'); setShowModal(null); }} className="bg-red-500 hover:bg-red-600 text-white">Réinitialiser</Button>
+                  </div>
                 </div>
               </>
             ) : showModal === 'edit-client' ? (

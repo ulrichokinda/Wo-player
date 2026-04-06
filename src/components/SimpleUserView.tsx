@@ -1,7 +1,8 @@
 import React from 'react';
-import { Tv, Copy, ArrowRight } from 'lucide-react';
+import { Tv, Copy, ArrowRight, ShieldAlert, Gift } from 'lucide-react';
 import { Card } from './ui';
 import { Logo } from './Logo';
+import { motion } from 'motion/react';
 
 interface SimpleUserViewProps {
   macAddress: string;
@@ -11,7 +12,7 @@ interface SimpleUserViewProps {
 
 export const SimpleUserView: React.FC<SimpleUserViewProps> = ({ macAddress, onNotify }) => {
   return (
-    <div className="min-h-screen bg-black text-white p-4 md:p-8 flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-black text-white p-4 md:p-8 flex flex-col overflow-hidden tv-container">
       <div className="w-full max-w-7xl mx-auto flex flex-col gap-6 md:gap-8 flex-1">
         
         {/* Header/Logo Section */}
@@ -30,6 +31,40 @@ export const SimpleUserView: React.FC<SimpleUserViewProps> = ({ macAddress, onNo
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Info Section */}
+        <div className="flex flex-col gap-4 max-w-2xl mx-auto w-full">
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-primary/10 border border-primary/20 p-4 rounded-2xl flex items-center gap-4"
+          >
+            <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center text-primary shrink-0">
+              <Gift size={20} />
+            </div>
+            <div>
+              <h4 className="font-bold text-sm text-primary">Essai Gratuit de 14 Jours</h4>
+              <p className="text-xs text-zinc-400">Profitez de toutes les fonctionnalités premium gratuitement pendant 14 jours après l'installation.</p>
+            </div>
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-2xl flex items-center gap-4"
+          >
+            <div className="w-10 h-10 bg-zinc-800 rounded-full flex items-center justify-center text-zinc-400 shrink-0">
+              <ShieldAlert size={20} />
+            </div>
+            <div>
+              <h4 className="font-bold text-sm text-white">Lecteur Multimédia Uniquement</h4>
+              <p className="text-xs text-zinc-500 leading-relaxed">
+                Sky Player ne fournit aucun contenu. Vous devez ajouter votre propre liste de lecture M3U ou vos codes Xtream pour regarder vos chaînes.
+              </p>
+            </div>
+          </motion.div>
         </div>
 
         {/* Footer Section */}

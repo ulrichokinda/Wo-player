@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Logo } from '../components/Logo';
-import { Button, Input } from '../components/ui';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { Button, Input, Card, Badge } from '../components/ui';
 import { auth } from '../firebase';
 import { Footer } from '../components/Footer';
+import { Mail, Lock, User, Phone, Globe, Chrome, ArrowRight, ShieldCheck, ArrowLeft } from 'lucide-react';
+import { motion } from 'motion/react';
 
 const COUNTRIES = [
   'Bénin', 'Burkina Faso', 'Burundi', 'Cameroun', 'Centrafrique', 'Comores', 
@@ -21,30 +22,42 @@ export const Register = () => {
   const [country, setCountry] = useState(COUNTRIES[0]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      // Save user details to our backend
-      await fetch('/api/auth/register', {
+      // Save user details to our backend directly
+      const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          uid: user.uid,
           email,
           username,
+          password,
           phone,
           country,
           role: 'client'
         }),
       });
+      
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Registration failed');
+
+      localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('token', data.token);
 
       alert('Inscription réussie !');
-      navigate('/dashboard');
+      
+      const redirect = searchParams.get('redirect');
+      const plan = searchParams.get('plan');
+      
+      if (redirect) {
+        navigate(`${redirect}${plan ? `?plan=${plan}` : ''}`);
+      } else {
+        navigate('/dashboard');
+      }
     } catch (error: any) {
       alert('Erreur : ' + error.message);
     } finally {
@@ -52,32 +65,95 @@ export const Register = () => {
     }
   };
 
+  const handleGoogleLogin = () => {
+    alert("La connexion Google nécessite Firebase. Veuillez utiliser l'inscription par email.");
+  };
+
   return (
-    <div className="min-h-screen bg-black text-white p-6 flex flex-col items-center justify-center">
-      <Logo size={60} className="mb-8" />
-      <div className="w-full max-w-md bg-zinc-900 p-8 rounded-2xl border border-zinc-800">
-        <h2 className="text-2xl font-black mb-6">Créer un compte</h2>
-        <form onSubmit={handleRegister} className="space-y-4">
-          <Input label="Nom d'utilisateur" value={username} onChange={(e: any) => setUsername(e.target.value)} required />
-          <Input label="Email" type="email" value={email} onChange={(e: any) => setEmail(e.target.value)} required />
-          <Input label="Mot de passe" type="password" value={password} onChange={(e: any) => setPassword(e.target.value)} required />
-          <Input label="Téléphone" value={phone} onChange={(e: any) => setPhone(e.target.value)} required />
-          
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-zinc-400">Pays</label>
-            <select 
-              value={country} 
-              onChange={(e) => setCountry(e.target.value)}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-sm focus:border-primary outline-none"
-            >
-              {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
+    <div className="min-h-screen bg-black text-white font-sans flex items-center justify-center p-6 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent relative">
+      <Link 
+        to="/" 
+        className="absolute top-8 left-8 p-3 bg-zinc-900/50 border border-zinc-800 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all z-50 group"
+        title="Retour à l'accueil"
+      >
+        <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+      </Link>
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-lg"
+      >
+        <Card className="p-8 md:p-12 space-y-8 border-zinc-800/50 bg-zinc-900/30 backdrop-blur-2xl shadow-2xl shadow-primary/5">
+          <header className="text-center space-y-4">
+            <Logo size={60} className="mx-auto" />
+            <div className="space-y-2">
+              <Badge variant="primary">Rejoindre le Réseau</Badge>
+              <h1 className="text-4xl font-black tracking-tighter">Créer un compte</h1>
+              <p className="text-zinc-500 text-sm font-medium">Devenez revendeur officiel et commencez à gagner.</p>
+            </div>
+          </header>
+
+          <form onSubmit={handleRegister} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="Nom d'utilisateur" value={username} onChange={(e: any) => setUsername(e.target.value)} icon={User} required />
+              <Input label="Email" type="email" value={email} onChange={(e: any) => setEmail(e.target.value)} icon={Mail} required />
+              <Input label="Mot de passe" type="password" value={password} onChange={(e: any) => setPassword(e.target.value)} icon={Lock} required />
+              <Input label="Téléphone" value={phone} onChange={(e: any) => setPhone(e.target.value)} icon={Phone} required />
+              
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-2 flex items-center gap-2">
+                  <Globe size={10} />
+                  Pays de Résidence
+                </label>
+                <select 
+                  value={country} 
+                  onChange={(e) => setCountry(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-4 text-sm focus:border-primary outline-none transition-all hover:border-zinc-700"
+                >
+                  {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <Button type="submit" fullWidth size="lg" loading={loading} className="py-6 text-base group">
+              S'inscrire Maintenant
+              <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
+            </Button>
+          </form>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-zinc-800"></div>
+            </div>
+            <div className="relative flex justify-center text-[10px] uppercase tracking-[0.3em] font-black text-zinc-600">
+              <span className="bg-zinc-950 px-4">OU</span>
+            </div>
           </div>
 
-          <Button type="submit" className="w-full mt-4" loading={loading}>S'inscrire</Button>
-        </form>
-      </div>
-      <Footer />
+          <Button 
+            variant="outline" 
+            fullWidth 
+            onClick={handleGoogleLogin}
+            className="border-zinc-800 hover:bg-white hover:text-black py-4"
+          >
+            <Chrome size={18} className="mr-2" />
+            S'inscrire avec Google
+          </Button>
+
+          <footer className="text-center space-y-4">
+            <p className="text-zinc-500 text-xs font-medium">
+              Déjà membre ?{' '}
+              <Link to="/login" className="text-primary font-black hover:underline">
+                Se connecter
+              </Link>
+            </p>
+            <div className="flex items-center justify-center gap-2 text-zinc-700">
+              <ShieldCheck size={12} />
+              <span className="text-[10px] font-bold uppercase tracking-widest">Sécurisé par Sky Player</span>
+            </div>
+          </footer>
+        </Card>
+      </motion.div>
     </div>
   );
 };

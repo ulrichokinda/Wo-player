@@ -12,8 +12,15 @@
 
 @layer base {
   :root {
-    --tv-safe-area-x: 5%;
-    --tv-safe-area-y: 5%;
+    --tv-safe-area-x: 0px;
+    --tv-safe-area-y: 0px;
+  }
+
+  @media (min-width: 1024px) {
+    :root {
+      --tv-safe-area-x: 5%;
+      --tv-safe-area-y: 5%;
+    }
   }
 
   body {
@@ -46,7 +53,13 @@
   }
 
   .glass-panel {
-    @apply bg-zinc-900/40 border border-white/5 backdrop-blur-2xl;
+    @apply bg-zinc-900/80 border border-white/5;
+  }
+  
+  @supports (backdrop-filter: blur(1px)) {
+    .glass-panel {
+      @apply bg-zinc-900/40 backdrop-blur-2xl;
+    }
   }
 
   @keyframes swipe-hint {
