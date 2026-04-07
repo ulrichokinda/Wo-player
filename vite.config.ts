@@ -49,5 +49,21 @@ export default defineConfig(({mode}) => {
       port: 3000,
       host: '0.0.0.0',
     },
+    build: {
+      chunkSizeWarningLimit: 1000,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('lucide-react')) return 'vendor-icons';
+              if (id.includes('hls.js')) return 'vendor-hls';
+              if (id.includes('motion')) return 'vendor-motion';
+              if (id.includes('react')) return 'vendor-react';
+              return 'vendor';
+            }
+          }
+        }
+      }
+    }
   };
 });

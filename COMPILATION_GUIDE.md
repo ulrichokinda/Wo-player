@@ -1,51 +1,108 @@
-# Guide de Compilation Sky Player Pro
+# Guide de Compilation Complet : Sky Player Pro
 
-## 1. Accès Local (Navigateur)
-L'adresse `0.0.0.0` est une adresse système. Sur votre ordinateur, vous devez utiliser :
-👉 **http://localhost:3000**
+Ce guide vous accompagne pour compiler et préparer la soumission de votre application sur les 4 plateformes majeures.
 
 ---
 
-## 2. Compilation Android & Android TV
-Le projet utilise **Capacitor**. Voici les étapes :
+## 🛠️ ÉTAPE 0 : Préparation Universelle
+Avant toute compilation, vous devez générer les fichiers web finaux :
+```bash
+npm run build
+```
+*Le dossier `dist/` contient maintenant votre application prête à être packagée.*
 
-1. **Pré-requis :** Installez [Android Studio](https://developer.android.com/studio).
-2. **Build du projet :**
+---
+
+## 🤖 1. ANDROID & ANDROID TV (Capacitor)
+
+### Pré-requis :
+- [Android Studio](https://developer.android.com/studio) installé.
+- SDK Android 34+ installé via Android Studio.
+
+### Étapes :
+1. **Ajouter la plateforme :**
    ```bash
-   npm run build
+   npx cap add android
    ```
-3. **Synchronisation :**
+2. **Synchroniser le code :**
    ```bash
    npx cap sync
    ```
-4. **Ouverture dans Android Studio :**
+3. **Ouvrir dans Android Studio :**
    ```bash
    npx cap open android
    ```
-5. **Android TV :** Dans Android Studio, ouvrez le fichier `AndroidManifest.xml` et assurez-vous que la bannière TV est présente et que le mode "Touchscreen" n'est pas requis.
+4. **Configuration Android TV (CRITIQUE) :**
+   Dans Android Studio, ouvrez `app/src/main/AndroidManifest.xml` :
+   - Ajoutez : `<uses-feature android:name="android.software.leanback" android:required="false" />`
+   - Ajoutez : `<uses-feature android:name="android.hardware.touchscreen" android:required="false" />`
+   - Dans `<activity>`, ajoutez : `<intent-filter> <category android:name="android.intent.category.LEANBACK_LAUNCHER" /> </intent-filter>`
+5. **Générer l'APK/Bundle :**
+   - `Build` > `Generate Signed Bundle / APK`.
 
 ---
 
-## 3. Smart TV Samsung (Tizen)
-1. **Pré-requis :** Installez [Tizen Studio](https://developer.tizen.org/development/tizen-studio/download).
-2. **Build :** Utilisez le dossier `dist/` généré par `npm run build`.
-3. **Packaging :** Créez un projet "Web Application" dans Tizen Studio et importez le contenu de `dist/`.
+## 📺 2. SAMSUNG SMART TV (Tizen Studio)
+
+### Pré-requis :
+- [Tizen Studio](https://developer.tizen.org/development/tizen-studio/download) avec "TV Extensions".
+
+### Étapes :
+1. **Créer le projet :**
+   - Ouvrez Tizen Studio > `File` > `New` > `Tizen Project`.
+   - Choisissez `Template` > `TV` > `Web Application`.
+2. **Importer le code :**
+   - Supprimez le contenu du dossier du projet Tizen.
+   - Copiez TOUT le contenu de votre dossier `dist/` (généré à l'étape 0) dans le dossier du projet Tizen.
+3. **Configurer le `config.xml` :**
+   - Assurez-vous que l'ID de l'application est unique.
+   - Ajoutez les privilèges réseau : `http://tizen.org/privilege/internet`.
+4. **Build & Package :**
+   - Clic droit sur le projet > `Build Package`.
+   - Cela génère un fichier `.wgt` prêt pour le Samsung Seller Office.
 
 ---
 
-## 4. Smart TV LG (webOS)
-1. **Pré-requis :** Installez le [webOS TV SDK](https://webostv.developer.lge.com/sdk/installation).
-2. **Configuration :** Créez un fichier `appinfo.json` dans le dossier `dist/`.
-3. **Packaging :**
+## 📡 3. LG SMART TV (webOS TV SDK)
+
+### Pré-requis :
+- [webOS TV SDK](https://webostv.developer.lge.com/sdk/installation) (CLI Tools).
+
+### Étapes :
+1. **Créer le fichier `appinfo.json` :**
+   Créez ce fichier dans votre dossier `dist/` :
+   ```json
+   {
+     "id": "com.skyplayer.app",
+     "version": "1.0.0",
+     "vendor": "SkyPlayer",
+     "type": "web",
+     "main": "index.html",
+     "title": "Sky Player Pro",
+     "icon": "icon.png",
+     "largeIcon": "largeIcon.png",
+     "bgImage": "backgroundImage.png"
+   }
+   ```
+2. **Packager l'application :**
+   Ouvrez votre terminal dans le dossier racine et tapez :
    ```bash
    ares-package dist/
    ```
+3. **Résultat :**
+   Cela génère un fichier `.ipk` prêt pour le LG Content Store.
 
 ---
 
-## 5. Dépendances de Compilation
-Pour installer les outils de compilation nécessaires sur votre PC :
-```bash
-npm install -g @capacitor/cli
-npm install @capacitor/android
-```
+## 🚀 4. SOUMISSION (Checklist Finale)
+
+### Éléments requis pour TOUS les stores :
+1. **Icônes :** 512x512px (Android), 1920x1080px (Bannière TV).
+2. **Captures d'écran :** Au moins 4 captures de l'interface (Lecteur, Dashboard, Home).
+3. **Description :** Texte clair expliquant que c'est un lecteur (sans contenu illégal).
+4. **Privacy Policy :** Une URL vers votre politique de confidentialité (obligatoire).
+
+### Liens des consoles de développeur :
+- **Google Play :** [Play Console](https://play.google.com/console) (25$ une fois).
+- **Samsung TV :** [Seller Office](https://seller.samsungapps.com/tv) (Gratuit).
+- **LG TV :** [LG Seller Lounge](https://seller.lgappstv.com/) (Gratuit).
