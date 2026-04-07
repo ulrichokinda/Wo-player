@@ -36,6 +36,18 @@ export const VideoPlayer: React.FC<PlayerProps> = ({ url, title }) => {
     droppedFrames: 0,
     latency: 0
   });
+
+  const updateStats = useCallback((hlsInstance: Hls, videoElement: HTMLVideoElement, data: any) => {
+    const level = hlsInstance.levels[hlsInstance.currentLevel];
+    setStats(prev => ({
+      ...prev,
+      bitrate: level?.bitrate || 0,
+      resolution: level ? `${level.width}x${level.height}` : '0x0',
+      buffer: videoElement.buffered.length > 0 ? videoElement.buffered.end(videoElement.buffered.length - 1) - videoElement.currentTime : 0,
+      droppedFrames: (videoElement as any).getVideoPlaybackQuality?.().droppedVideoFrames || 0,
+      latency: data.stats.loading.start - data.stats.loading.end
+    }));
+  }, []);
   const [levels, setLevels] = useState<any[]>([]);
   const [currentLevel, setCurrentLevel] = useState(-1);
   const [playbackRate, setPlaybackRate] = useState(1);
@@ -96,7 +108,7 @@ export const VideoPlayer: React.FC<PlayerProps> = ({ url, title }) => {
         maxLoadingDelay: 4,
         manifestLoadingTimeOut: 10000,
         fragLoadingTimeOut: 20000,
-        xhrSetup: (xhr) => {
+        xhrSetup: (xhr: XMLHttpRequest) => {
           xhr.timeout = 15000;
         }
       });
@@ -104,19 +116,19 @@ export const VideoPlayer: React.FC<PlayerProps> = ({ url, title }) => {
       hls.loadSource(url);
       hls.attachMedia(video);
       
-      hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+      hls.on(Hls.Events.MANIFEST_PARSED, (_event: string, data: { levels: any[] }) => {
         setLevels(data.levels);
-        video.play().catch((err) => {
+        video.play().catch((err: Error) => {
           console.warn("Autoplay blocked or failed:", err);
         });
         setIsPlaying(true);
       });
 
-      hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
+      hls.on(Hls.Events.LEVEL_SWITCHED, (_event: string, data: { level: number }) => {
         setCurrentLevel(data.level);
       });
 
-      hls.on(Hls.Events.FRAG_LOADED, (event, data: any) => {
+      hls.on(Hls.Events.FRAG_LOADED, (_event: string, data: any) => {
         const loadTime = data.stats.loading.end - data.stats.loading.start;
         if (loadTime > 2000) setConnectionHealth('poor');
         else if (loadTime > 800) setConnectionHealth('fair');
@@ -124,19 +136,11 @@ export const VideoPlayer: React.FC<PlayerProps> = ({ url, title }) => {
 
         // Update stats
         if (hls) {
-          const level = hls.levels[hls.currentLevel];
-          setStats(prev => ({
-            ...prev,
-            bitrate: level?.bitrate || 0,
-            resolution: level ? `${level.width}x${level.height}` : '0x0',
-            buffer: video.buffered.length > 0 ? video.buffered.end(video.buffered.length - 1) - video.currentTime : 0,
-            droppedFrames: (video as any).getVideoPlaybackQuality?.().droppedVideoFrames || 0,
-            latency: data.stats.loading.start - data.stats.loading.end // simplified
-          }));
+          updateStats(hls, video, data);
         }
       });
 
-      hls.on(Hls.Events.ERROR, (event, data) => {
+      hls.on(Hls.Events.ERROR, (_event: string, data: any) => {
         if (data.fatal) {
           console.error("HLS Fatal Error:", data.type, data.details);
           switch (data.type) {
