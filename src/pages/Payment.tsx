@@ -4,10 +4,9 @@ import { Footer } from '../components/Footer';
 import { PAYMENT_METHODS } from '../constants';
 import { validatePhone } from '../lib/validation';
 import { api } from '../services/api';
-import { Globe, Smartphone, Zap } from 'lucide-react';
+import { Globe, Smartphone, Zap, ArrowLeft } from 'lucide-react';
 import { motion } from 'motion/react';
-
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 
 export const Payment = () => {
   const [searchParams] = useSearchParams();
@@ -76,7 +75,14 @@ export const Payment = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white font-sans selection:bg-primary/30">
+    <div className="min-h-screen bg-black text-white font-sans selection:bg-primary/30 relative">
+      <Link 
+        to="/" 
+        className="absolute top-8 left-8 p-3 bg-zinc-900/50 border border-zinc-800 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all z-50 group"
+        title="Retour à l'accueil"
+      >
+        <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+      </Link>
       <div className="max-w-6xl mx-auto px-6 py-12 md:py-24 space-y-16">
         <header className="text-center space-y-4">
           <Badge variant="primary">Boutique Officielle</Badge>
