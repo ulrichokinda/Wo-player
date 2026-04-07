@@ -1,6 +1,6 @@
-import React from 'react';
-import { Tv, Copy, ArrowRight, ShieldAlert, Gift } from 'lucide-react';
-import { Card } from './ui';
+import React, { useState, useEffect } from 'react';
+import { Tv, Copy, ArrowRight, ShieldAlert, Gift, Wifi, WifiOff, RotateCcw } from 'lucide-react';
+import { Card, Badge, cn } from './ui';
 import { Logo } from './Logo';
 import { motion } from 'motion/react';
 
@@ -11,15 +11,51 @@ interface SimpleUserViewProps {
 }
 
 export const SimpleUserView: React.FC<SimpleUserViewProps> = ({ macAddress, onNotify }) => {
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [lowDataMode, setLowDataMode] = useState(false);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-black text-white p-4 md:p-8 flex flex-col overflow-hidden tv-container">
       <div className="w-full max-w-7xl mx-auto flex flex-col gap-6 md:gap-8 flex-1">
         
         {/* Header/Logo Section */}
-        <div className="flex flex-col items-center justify-center gap-4 md:gap-6 py-4">
+        <div className="flex flex-col items-center justify-center gap-4 md:gap-6 py-4 relative">
+          <div className="absolute top-0 right-0 flex items-center gap-2">
+            <button 
+              onClick={() => setLowDataMode(!lowDataMode)}
+              className={cn(
+                "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all",
+                lowDataMode ? "bg-primary/20 border-primary text-primary" : "bg-zinc-900 border-zinc-800 text-zinc-500"
+              )}
+            >
+              Mode Éco : {lowDataMode ? 'ON' : 'OFF'}
+            </button>
+            <Badge variant={isOnline ? 'success' : 'error'} className="gap-2">
+              {isOnline ? <Wifi size={10} /> : <WifiOff size={10} />}
+              {isOnline ? 'Connecté' : 'Hors-ligne'}
+            </Badge>
+          </div>
           <Logo size={80} />
           
-          <div className="flex flex-col items-center gap-2 bg-zinc-900/50 px-6 py-4 rounded-2xl border border-zinc-800 w-full max-w-sm">
+          <div className="flex flex-col items-center gap-2 bg-zinc-900/50 px-6 py-4 rounded-2xl border border-zinc-800 w-full max-w-sm relative group">
+            <button 
+              onClick={() => window.location.reload()} 
+              className="absolute -top-2 -right-2 p-2 bg-zinc-800 hover:bg-primary text-zinc-500 hover:text-black rounded-full border border-zinc-700 transition-all opacity-0 group-hover:opacity-100"
+              title="Rafraîchir"
+            >
+              <RotateCcw size={12} />
+            </button>
             <span className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Adresse MAC</span>
             <div className="flex items-center gap-3">
               <span className="text-lg md:text-xl font-mono font-bold text-white tracking-wider">{macAddress}</span>

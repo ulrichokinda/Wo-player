@@ -114,6 +114,21 @@ export const ResellerPanel: React.FC<ResellerPanelProps> = ({ activeTab, setActi
   const [showExportOptions, setShowExportOptions] = useState<number | null>(null);
   const [managedClient, setManagedClient] = useState<Activation | null>(null);
   const [managementType, setManagementType] = useState<'client' | 'playlist' | null>(null);
+  const [selectedCountries, setSelectedCountries] = useState<string[]>(['France', 'Sports', 'Documentaires', 'Enfants']);
+
+  const countries = [
+    'France', 'Belgique', 'Suisse', 'Canada', 'USA', 'UK', 
+    'Espagne', 'Italie', 'Allemagne', 'Portugal', 'Turquie', 
+    'Arabe', 'Afrique', 'Sports', 'Cinéma', 'Documentaires', 'Enfants'
+  ];
+
+  const toggleCountry = (country: string) => {
+    setSelectedCountries(prev => 
+      prev.includes(country) 
+        ? prev.filter(c => c !== country) 
+        : [...prev, country]
+    );
+  };
 
   const [showActivationModal, setShowActivationModal] = useState(false);
   const [activationStep, setActivationStep] = useState(1);
@@ -2257,34 +2272,58 @@ export const ResellerPanel: React.FC<ResellerPanelProps> = ({ activeTab, setActi
                       </button>
                     </>
                   ) : (
-                    <div className="sm:col-span-2 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-black uppercase tracking-widest text-zinc-500">Chaînes de la Playlist</h3>
+                    <div className="sm:col-span-2 space-y-6">
+                      {/* Country Selection Section */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-sm font-black uppercase tracking-widest text-zinc-500">Sélection des Pays</h3>
+                          <Badge variant="primary" className="text-[8px]">{selectedCountries.length} sélectionnés</Badge>
+                        </div>
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                          {countries.map(country => (
+                            <button
+                              key={country}
+                              onClick={() => toggleCountry(country)}
+                              className={cn(
+                                "px-2 py-1.5 rounded-lg text-[9px] font-bold border transition-all",
+                                selectedCountries.includes(country)
+                                  ? "bg-primary/20 border-primary text-primary"
+                                  : "bg-zinc-800/50 border-zinc-700 text-zinc-500 hover:border-zinc-500"
+                              )}
+                            >
+                              {country}
+                            </button>
+                          ))}
+                        </div>
+                        <p className="text-[9px] text-zinc-500 italic">Sélectionnez les pays pour alléger la playlist et booster les performances du lecteur.</p>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2">
+                        <h3 className="text-sm font-black uppercase tracking-widest text-zinc-500">Aperçu Playlist</h3>
                         <Button 
-                          variant="outline" 
+                          variant="primary" 
                           size="sm" 
                           icon={Copy}
                           onClick={() => {
-                            const m3uLink = `http://skyplayer.live/get.php?mac=${managedClient.target_mac}&type=m3u_plus`;
+                            const countriesParam = selectedCountries.join(',');
+                            const m3uLink = `http://skyplayer.live/get.php?mac=${managedClient.target_mac}&type=m3u_plus&countries=${countriesParam}`;
                             navigator.clipboard.writeText(m3uLink);
-                            notify('Lien M3U complet copié !', 'success');
+                            notify('Lien M3U optimisé copié !', 'success');
                           }}
                         >
-                          Lien M3U Complet
+                          Copier Lien Optimisé
                         </Button>
                       </div>
                       
-                      <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                      <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
                         {[
                           { name: 'TF1 HD', category: 'France' },
                           { name: 'France 2 HD', category: 'France' },
                           { name: 'M6 HD', category: 'France' },
-                          { name: 'Canal+ HD', category: 'France' },
                           { name: 'beIN Sports 1', category: 'Sports' },
-                          { name: 'RMC Sport 1', category: 'Sports' },
                           { name: 'National Geographic', category: 'Documentaires' },
                           { name: 'Disney Channel', category: 'Enfants' },
-                        ].map((channel, idx) => (
+                        ].filter(ch => selectedCountries.includes(ch.category)).map((channel, idx) => (
                           <div key={idx} className="flex items-center justify-between p-3 bg-zinc-800/30 border border-zinc-800 rounded-xl group hover:border-blue-500/30 transition-all">
                             <div className="flex items-center gap-3">
                               <div className="w-8 h-8 bg-zinc-800 rounded-lg flex items-center justify-center text-zinc-500">
