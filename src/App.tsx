@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Home } from './pages/Home';
 import { Dashboard } from './pages/Dashboard';
 import { Payment } from './pages/Payment';
@@ -11,12 +11,17 @@ import { Privacy } from './pages/Privacy';
 import { FAQ } from './pages/FAQ';
 import { Assets } from './pages/Assets';
 import { SimpleUserView } from './components/SimpleUserView';
+import { Capacitor } from '@capacitor/core';
 
 export default function App() {
+  const isNative = Capacitor.isNativePlatform();
+
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Home />} />
+        {/* If native app (APK/TV), show the MAC screen as home. Otherwise show the landing page. */}
+        <Route path="/" element={isNative ? <Navigate to="/app" replace /> : <Home />} />
+        
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/payment" element={<Payment />} />
         <Route path="/register" element={<Register />} />
@@ -26,7 +31,9 @@ export default function App() {
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/faq" element={<FAQ />} />
         <Route path="/assets" element={<Assets />} />
-        <Route path="/app" element={<SimpleUserView macAddress="00:1A:2B:3C:4D:5E" onNotify={() => {}} />} />
+        
+        {/* The specialized view for the APK/TV app */}
+        <Route path="/app" element={<SimpleUserView channels={[]} onNotify={() => {}} />} />
       </Routes>
     </BrowserRouter>
   );

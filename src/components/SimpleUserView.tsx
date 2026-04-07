@@ -10,11 +10,23 @@ interface SimpleUserViewProps {
   onNotify: (msg: string, type: 'success' | 'error' | 'info') => void;
 }
 
-export const SimpleUserView: React.FC<SimpleUserViewProps> = ({ macAddress, onNotify }) => {
+export const SimpleUserView: React.FC<SimpleUserViewProps> = ({ onNotify }) => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [lowDataMode, setLowDataMode] = useState(false);
+  const [macAddress, setMacAddress] = useState('00:00:00:00:00:00');
 
   useEffect(() => {
+    // Generate or retrieve a persistent device ID formatted as MAC
+    let deviceId = localStorage.getItem('sky_player_device_id');
+    if (!deviceId) {
+      const chars = '0123456789ABCDEF';
+      deviceId = Array.from({ length: 6 }, () => 
+        chars[Math.floor(Math.random() * 16)] + chars[Math.floor(Math.random() * 16)]
+      ).join(':');
+      localStorage.setItem('sky_player_device_id', deviceId);
+    }
+    setMacAddress(deviceId);
+
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);
@@ -106,7 +118,9 @@ export const SimpleUserView: React.FC<SimpleUserViewProps> = ({ macAddress, onNo
         {/* Footer Section */}
         <div className="mt-auto pt-4 border-t border-zinc-900 flex justify-center">
           <a 
-            href="/dashboard"
+            href="https://ais-dev-lfwiazz5uklpv2b4uunzg7-511075437969.europe-west2.run.app/dashboard"
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center gap-2 bg-primary hover:bg-primary-dark px-8 py-3.5 rounded-full text-[11px] font-black uppercase tracking-widest transition-all tv-focus"
           >
             Devenir Revendeur <ArrowRight size={14} />

@@ -1,10 +1,9 @@
-import { defineConfig } from '@capacitor/cli';
+import { CapacitorConfig } from '@capacitor/cli';
 
-const config: defineConfig = {
+const config: CapacitorConfig = {
   appId: 'com.skyplayer.app',
   appName: 'Sky Player',
   webDir: 'dist',
-  bundledWebRuntime: false,
   server: {
     androidScheme: 'https'
   }
