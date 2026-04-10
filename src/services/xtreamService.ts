@@ -39,7 +39,31 @@ export const xtreamService = {
     return response.json();
   },
 
+  async getShortEPG(creds: XtreamCredentials, streamId: number) {
+    const url = `${creds.url}/player_api.php?username=${creds.username}&password=${creds.password}&action=get_short_epg&stream_id=${streamId}`;
+    const response = await fetch(url);
+    return response.json();
+  },
+
+  async getFullEPG(creds: XtreamCredentials, streamId: number) {
+    const url = `${creds.url}/player_api.php?username=${creds.username}&password=${creds.password}&action=get_simple_data_table&stream_id=${streamId}`;
+    const response = await fetch(url);
+    return response.json();
+  },
+
+  async getXMLTV(creds: XtreamCredentials) {
+    const url = `${creds.url}/xmltv.php?username=${creds.username}&password=${creds.password}`;
+    const response = await fetch(url);
+    return response.text();
+  },
+
   getStreamUrl(creds: XtreamCredentials, streamId: number, extension: string = 'ts') {
+    // Basic protection: we could obfuscate this or use a proxy, but for now we ensure it's built correctly
     return `${creds.url}/live/${creds.username}/${creds.password}/${streamId}.${extension}`;
+  },
+
+  getCatchupUrl(creds: XtreamCredentials, streamId: number, start: string, duration: number) {
+    // Format: /timeshift/username/password/duration/start_time/stream_id.ts
+    return `${creds.url}/timeshift/${creds.username}/${creds.password}/${duration}/${start}/${streamId}.ts`;
   }
 };

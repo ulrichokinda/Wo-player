@@ -88,6 +88,7 @@ export const SimpleUserView: React.FC<SimpleUserViewProps> = ({ onNotify }) => {
         onChannelSelect={(index) => setCurrentChannelIndex(index)}
         onNext={() => setCurrentChannelIndex((prev) => (prev + 1) % channels.length)}
         onPrev={() => setCurrentChannelIndex((prev) => (prev - 1 + channels.length) % channels.length)}
+        macAddress={macAddress}
       />
     );
   }

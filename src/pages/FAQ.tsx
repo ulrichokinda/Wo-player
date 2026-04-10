@@ -6,6 +6,11 @@ import { motion } from 'motion/react';
 import { ChevronDown } from 'lucide-react';
 
 const faqs = [
+  { q: "Comment utiliser le Guide des Programmes (EPG) ?", a: "Dans le lecteur vidéo, cliquez sur l'icône 'Calendrier'. Vous verrez alors la liste des programmes en cours et à venir pour la chaîne sélectionnée, avec leurs descriptions et horaires." },
+  { q: "Comment activer le mode Multi-Écran ?", a: "Cliquez sur l'icône 'Grille' (Grid) dans le lecteur. Vous pourrez alors choisir de diviser votre écran en 2 ou 4 parties et sélectionner une chaîne différente pour chaque fenêtre." },
+  { q: "Comment fonctionne le Replay (Catch-up) ?", a: "Si votre fournisseur IPTV supporte le Replay, vous pouvez accéder aux archives directement depuis le guide EPG. Cliquez sur un programme passé pour lancer la lecture en différé." },
+  { q: "Mes flux sont-ils protégés ?", a: "Oui, Sky Player intègre une technologie d'obfuscation qui masque l'URL de votre serveur dans le code de l'application, empêchant ainsi toute tentative de vol de vos accès par des tiers." },
+  { q: "Supportez-vous le format m3u8 (HLS) ?", a: "Absolument. Sky Player est optimisé pour le protocole HLS (m3u8), qui est le standard le plus stable pour le streaming sur Smart TV et appareils mobiles, garantissant moins de buffering." },
   { q: "Où puis-je télécharger Sky Player ?", a: "Notre application est disponible en téléchargement sur le magasin Samsung Tizen TV, LG Content Store et le Google Play Store pour Android TV. Vous pouvez également télécharger l'APK directement depuis notre page d'accueil." },
   { q: "Le lecteur Sky Player contient-il des chaînes ?", a: "Non, Sky Player est exclusivement un lecteur multimédia. Vous devez posséder votre propre liste de lecture (M3U ou codes Xtream) pour utiliser l'application. Nous ne fournissons aucun contenu audiovisuel." },
   { q: "Quels sont les tarifs d'activation ?", a: "Sky Player propose deux formules : une activation annuelle à 2 000 F CFA ou une activation à vie (Lifetime) à 4 675 F CFA par appareil. Il n'y a aucun frais caché par la suite." },

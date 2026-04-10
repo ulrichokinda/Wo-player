@@ -1,8 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
-import { Play, Pause, Volume2, VolumeX, Maximize, ChevronLeft, List, Settings, SkipBack, SkipForward, Search, X, Star } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Maximize, ChevronLeft, List, Settings, SkipBack, SkipForward, Search, X, Star, Calendar, Grid } from 'lucide-react';
+import { EPGProgram, parseEPG, formatTime } from '../lib/epgParser';
 import { motion, AnimatePresence } from 'motion/react';
 import { Channel } from '../lib/playlistParser';
+import { MultiScreenPlayer } from './MultiScreenPlayer';
+import { Badge } from './ui';
 
 interface PlayerProps {
   url: string;
@@ -12,6 +15,7 @@ interface PlayerProps {
   onPrev?: () => void;
   channels?: Channel[];
   onChannelSelect?: (index: number) => void;
+  macAddress?: string;
 }
 
 export const Player: React.FC<PlayerProps> = ({ 
@@ -21,7 +25,8 @@ export const Player: React.FC<PlayerProps> = ({
   onNext, 
   onPrev,
   channels = [],
-  onChannelSelect
+  onChannelSelect,
+  macAddress
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -34,7 +39,33 @@ export const Player: React.FC<PlayerProps> = ({
   const [favorites, setFavorites] = useState<string[]>(() => {
     return JSON.parse(localStorage.getItem('sky_player_favorites') || '[]');
   });
+  const [showEPG, setShowEPG] = useState(false);
+  const [epgData, setEPGData] = useState<EPGProgram[]>([]);
+  const [isMultiScreen, setIsMultiScreen] = useState(false);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Simple URL protection: obfuscate the URL in the DOM
+  const protectedUrl = btoa(url); 
+
+  useEffect(() => {
+    // Notify server about current channel
+    if (macAddress && channelName) {
+      fetch('/api/activations/update-channel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mac: macAddress, channelName })
+      }).catch(err => console.error('Failed to update current channel:', err));
+    }
+
+    // Fetch EPG if available (mocking for now, would use xtreamService in real scenario)
+    const fetchEPG = async () => {
+      setEPGData([
+        { title: "Journal Télévisé", start: new Date().toISOString(), end: new Date(Date.now() + 3600000).toISOString(), description: "L'actualité en direct." },
+        { title: "Grand Film du Soir", start: new Date(Date.now() + 3600000).toISOString(), end: new Date(Date.now() + 10800000).toISOString(), description: "Un chef-d'œuvre du cinéma." }
+      ]);
+    };
+    fetchEPG();
+  }, [url]);
 
   const toggleFavorite = (channelUrl: string) => {
     const newFavorites = favorites.includes(channelUrl)
@@ -56,7 +87,7 @@ export const Player: React.FC<PlayerProps> = ({
     let hls: Hls | null = null;
     setIsLoading(true);
 
-    if (url.includes('.m3u8') || url.includes('playlist.m3u8')) {
+    if (url.includes('.m3u8') || url.includes('playlist.m3u8') || url.includes('type=m3u8') || url.includes('/hls/')) {
       if (Hls.isSupported()) {
         hls = new Hls({
           enableWorker: true,
@@ -164,6 +195,20 @@ export const Player: React.FC<PlayerProps> = ({
               
               <div className="flex items-center gap-3">
                 <button 
+                  onClick={() => setIsMultiScreen(true)}
+                  className="p-3 bg-white/10 hover:bg-white/20 rounded-2xl backdrop-blur-xl transition-all text-white"
+                >
+                  <Grid size={20} />
+                </button>
+                <button 
+                  onClick={() => setShowEPG(!showEPG)}
+                  className={`p-3 rounded-2xl backdrop-blur-xl transition-all ${
+                    showEPG ? 'bg-primary text-black' : 'bg-white/10 text-white hover:bg-white/20'
+                  }`}
+                >
+                  <Calendar size={20} />
+                </button>
+                <button 
                   onClick={() => toggleFavorite(url)}
                   className={`p-3 rounded-2xl backdrop-blur-xl transition-all ${
                     favorites.includes(url) ? 'bg-yellow-500 text-black' : 'bg-white/10 text-white hover:bg-white/20'
@@ -227,6 +272,47 @@ export const Player: React.FC<PlayerProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* EPG Overlay */}
+      <AnimatePresence>
+        {showEPG && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="absolute bottom-32 left-8 right-8 bg-black/80 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 z-50 max-w-2xl"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-black italic tracking-tighter">Guide des Programmes (EPG)</h3>
+              <button onClick={() => setShowEPG(false)} className="p-2 hover:bg-white/10 rounded-xl">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="space-y-4">
+              {epgData.map((prog, i) => (
+                <div key={i} className={`p-4 rounded-2xl border ${i === 0 ? 'bg-primary/10 border-primary/30' : 'bg-white/5 border-white/5'}`}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-primary">
+                      {formatTime(prog.start)} - {formatTime(prog.end)}
+                    </span>
+                    {i === 0 && <Badge variant="success" className="text-[8px]">En cours</Badge>}
+                  </div>
+                  <h4 className="font-bold text-lg">{prog.title}</h4>
+                  <p className="text-xs text-zinc-500 line-clamp-2 mt-1">{prog.description}</p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Multi-Screen Player */}
+      {isMultiScreen && (
+        <MultiScreenPlayer 
+          channels={channels} 
+          onBack={() => setIsMultiScreen(false)} 
+        />
+      )}
 
       {/* Channel List Sidebar */}
       <AnimatePresence>

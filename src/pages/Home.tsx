@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Logo } from '../components/Logo';
 import { Button, Badge } from '../components/ui';
 import { Footer } from '../components/Footer';
-import { CheckCircle2, Menu, X, LayoutDashboard, UserPlus, Download, LogIn, Zap, Shield, Cpu, Monitor, Activity, Sliders } from 'lucide-react';
+import { CheckCircle2, Menu, X, LayoutDashboard, UserPlus, Download, LogIn, Zap, Shield, Cpu, Monitor, Activity, Sliders, Calendar, Grid, RotateCw, Lock, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth, onAuthStateChanged } from '../firebase';
 
@@ -133,28 +133,49 @@ export const Home = () => {
         </div>
 
         {/* Avantages */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 md:gap-8 py-8 md:py-12">
-          <div className="space-y-2 p-6 bg-zinc-900/20 rounded-3xl border border-zinc-800/50 hover:border-primary/20 transition-colors">
-            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary mb-4 mx-auto">
-              <Shield size={24} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 py-8 md:py-12">
+          <div className="space-y-2 p-6 bg-zinc-900/20 rounded-3xl border border-zinc-800/50 hover:border-primary/20 transition-all hover:-translate-y-1 group">
+            <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mb-4 mx-auto group-hover:bg-primary group-hover:text-black transition-all">
+              <Calendar size={24} />
             </div>
-            <h3 className="text-primary font-bold text-lg">Sécurité & Stabilité</h3>
-            <p className="text-zinc-500 text-sm">Une infrastructure robuste garantissant un streaming sans coupure, même en heure de pointe.</p>
+            <h3 className="text-primary font-bold text-lg">EPG Avancé</h3>
+            <p className="text-zinc-500 text-sm">Guide des programmes complet avec description et horaires en temps réel.</p>
           </div>
-          <div className="space-y-2 p-6 bg-zinc-900/20 rounded-3xl border border-zinc-800/50 hover:border-primary/20 transition-colors">
-            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary mb-4 mx-auto">
+          <div className="space-y-2 p-6 bg-zinc-900/20 rounded-3xl border border-zinc-800/50 hover:border-primary/20 transition-all hover:-translate-y-1 group">
+            <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mb-4 mx-auto group-hover:bg-primary group-hover:text-black transition-all">
+              <Grid size={24} />
+            </div>
+            <h3 className="text-primary font-bold text-lg">Multi-Écran</h3>
+            <p className="text-zinc-500 text-sm">Regardez jusqu'à 4 flux simultanément. Ne ratez plus aucun match important.</p>
+          </div>
+          <div className="space-y-2 p-6 bg-zinc-900/20 rounded-3xl border border-zinc-800/50 hover:border-primary/20 transition-all hover:-translate-y-1 group">
+            <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mb-4 mx-auto group-hover:bg-primary group-hover:text-black transition-all">
+              <RotateCw size={24} />
+            </div>
+            <h3 className="text-primary font-bold text-lg">Replay (Catch-up)</h3>
+            <p className="text-zinc-500 text-sm">Revenez en arrière sur vos émissions préférées. Le contrôle du temps est à vous.</p>
+          </div>
+          <div className="space-y-2 p-6 bg-zinc-900/20 rounded-3xl border border-zinc-800/50 hover:border-primary/20 transition-all hover:-translate-y-1 group">
+            <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mb-4 mx-auto group-hover:bg-primary group-hover:text-black transition-all">
+              <Lock size={24} />
+            </div>
+            <h3 className="text-primary font-bold text-lg">Flux Sécurisés</h3>
+            <p className="text-zinc-500 text-sm">Protection anti-vol de serveur et cryptage des flux pour une confidentialité totale.</p>
+          </div>
+          <div className="space-y-2 p-6 bg-zinc-900/20 rounded-3xl border border-zinc-800/50 hover:border-primary/20 transition-all hover:-translate-y-1 group">
+            <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mb-4 mx-auto group-hover:bg-primary group-hover:text-black transition-all">
               <Zap size={24} />
             </div>
-            <h3 className="text-primary font-bold text-lg">Zapping Ultra-Rapide</h3>
-            <p className="text-zinc-500 text-sm">Technologie Turbo-Start pour un changement de chaîne instantané en moins de 1.5s.</p>
+            <h3 className="text-primary font-bold text-lg">HLS (m3u8) Natif</h3>
+            <p className="text-zinc-500 text-sm">Support optimisé du protocole HLS pour une stabilité maximale sur mobile et Smart TV.</p>
           </div>
-          <div className="space-y-2 p-6 bg-zinc-900/20 rounded-3xl border border-zinc-800/50 hover:border-primary/20 transition-colors">
-            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary mb-4 mx-auto">
-              <Cpu size={24} />
-            </div>
-            <h3 className="text-primary font-bold text-lg">Moteur IPTV Pro</h3>
-            <p className="text-zinc-500 text-sm">Optimisé pour les connexions africaines avec une gestion intelligente du tampon.</p>
-          </div>
+        </div>
+
+        <div className="mt-8">
+          <Link to="/faq" className="inline-flex items-center gap-2 text-primary hover:text-white transition-colors font-bold uppercase tracking-widest text-xs group">
+            <span>En savoir plus dans la FAQ</span>
+            <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+          </Link>
         </div>
 
         {/* Pourquoi nous choisir ? */}

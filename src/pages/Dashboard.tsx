@@ -58,6 +58,10 @@ export const Dashboard = () => {
       } else {
         setUser(user);
         await fetchUserData(user.uid, user);
+        
+        // Auto-refresh activations every 30 seconds to see current channels
+        const interval = setInterval(() => fetchActivations(user.uid), 30000);
+        return () => clearInterval(interval);
       }
     });
     return () => unsubscribe();
@@ -272,6 +276,7 @@ export const Dashboard = () => {
                     <tr>
                       <th className="p-4 text-left font-black uppercase tracking-widest text-[10px]">Adresse MAC</th>
                       <th className="p-4 text-left font-black uppercase tracking-widest text-[10px]">Nom du Client</th>
+                      <th className="p-4 text-left font-black uppercase tracking-widest text-[10px]">Chaîne Actuelle</th>
                       <th className="p-4 text-left font-black uppercase tracking-widest text-[10px]">Pays</th>
                       <th className="p-4 text-left font-black uppercase tracking-widest text-[10px]">Système</th>
                       <th className="p-4 text-left font-black uppercase tracking-widest text-[10px]">Version</th>
@@ -285,6 +290,16 @@ export const Dashboard = () => {
                       <tr key={i} className="border-b border-zinc-900 hover:bg-zinc-950 transition-colors">
                         <td className="p-4 font-mono text-primary">{c.mac || c.target_mac}</td>
                         <td className="p-4 font-bold">{c.name || c.note || 'Client'}</td>
+                        <td className="p-4">
+                          {c.current_channel ? (
+                            <div className="flex items-center gap-2">
+                              <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                              <span className="text-xs text-white font-medium">{c.current_channel}</span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-zinc-600 italic">Hors-ligne</span>
+                          )}
+                        </td>
                         <td className="p-4 text-zinc-400">{c.country || 'N/A'}</td>
                         <td className="p-4 text-zinc-400">{c.system || 'N/A'}</td>
                         <td className="p-4 text-zinc-500">{c.version || 'N/A'}</td>

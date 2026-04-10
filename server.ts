@@ -38,6 +38,7 @@ db.exec(`
     country_code TEXT,
     playlist_url TEXT,
     xtream_data TEXT,
+    current_channel TEXT,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(resellerId) REFERENCES users(uid)
   );
@@ -186,13 +187,25 @@ async function startServer() {
         last_seen: activation.last_connection || '2024-03-09 14:22',
         version: activation.version || 'v3.2.1',
         playlist_url: activation.playlist_url,
-        xtream_data: activation.xtream_data ? JSON.parse(activation.xtream_data) : null
+        xtream_data: activation.xtream_data ? JSON.parse(activation.xtream_data) : null,
+        current_channel: activation.current_channel
       });
     } else {
       res.json({
         active: false,
         error: "Adresse MAC non trouvée dans notre base d'activations."
       });
+    }
+  });
+
+  app.post('/api/activations/update-channel', (req, res) => {
+    const { mac, channelName } = req.body;
+    try {
+      const stmt = db.prepare('UPDATE activations SET current_channel = ?, last_connection = CURRENT_TIMESTAMP WHERE target_mac = ?');
+      stmt.run(channelName, mac);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
     }
   });
 
